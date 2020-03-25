@@ -45,15 +45,31 @@ function getTimeOrigin(): number {
   return timeOrigin;
 }
 
+
+// offset is the number of milliseconds the performance timer is behind the system clock
+let offset = 0;
+export function updateOffset(forceOffset?: number) {
+  if (typeof forceOffset === "number") {
+    offset = forceOffset;
+    return;
+  }
+
+  const newOffset = Date.now() - (performance.now() + getTimeOrigin());
+  if (Math.abs(newOffset - offset) > 1000) {
+    // the offset changed by more than a second since the last change
+    offset = newOffset;
+  }
+}
+
 /**
  * Returns an hrtime calculated via performance component.
  * @param performanceNow
  */
-export function hrTime(performanceNow?: number): types.HrTime {
+export function hrTime(): types.HrTime {
+  updateOffset()
+  const performanceNow = performance.now() + offset
   const timeOrigin = numberToHrtime(getTimeOrigin());
-  const now = numberToHrtime(
-    typeof performanceNow === 'number' ? performanceNow : performance.now()
-  );
+  const now = numberToHrtime(performanceNow)
 
   let seconds = timeOrigin[0] + now[0];
   let nanos = timeOrigin[1] + now[1];
@@ -78,8 +94,9 @@ export function timeInputToHrTime(time: types.TimeInput): types.HrTime {
     return time as types.HrTime;
   } else if (typeof time === 'number') {
     // Must be a performance.now() if it's smaller than process start time.
-    if (time < getTimeOrigin()) {
-      return hrTime(time);
+    const timeOrigin = getTimeOrigin();
+    if (time < timeOrigin) {
+      return numberToHrtime(time + timeOrigin);
     } else {
       // epoch milliseconds or performance.timeOrigin
       return numberToHrtime(time);

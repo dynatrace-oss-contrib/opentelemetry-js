@@ -27,12 +27,14 @@ import {
   hrTimeToMicroseconds,
   hrTimeToTimeStamp,
   isTimeInput,
+  updateOffset,
 } from '../../src/common/time';
 
 describe('time', () => {
   let sandbox: sinon.SinonSandbox;
 
   beforeEach(() => {
+    updateOffset(0)
     sandbox = sinon.createSandbox();
   });
 
@@ -44,53 +46,33 @@ describe('time', () => {
     it('should return hrtime now', () => {
       sandbox.stub(performance, 'timeOrigin').value(11.5);
       sandbox.stub(performance, 'now').callsFake(() => 11.3);
+      sandbox.stub(Date, "now").returns(11.5 + 11.3)
 
       const output = hrTime();
       assert.deepStrictEqual(output, [0, 22800000]);
     });
 
-    it('should convert performance now', () => {
+    it('should calculate offsets when the performance timer is behind the system clock', () => {
       sandbox.stub(performance, 'timeOrigin').value(11.5);
-      const performanceNow = 11.3;
+      sandbox.stub(performance, 'now').callsFake(() => 11.3);
+      sandbox.stub(Date, "now").returns(11.5 + 11.3 + 2000)
 
-      const output = hrTime(performanceNow);
-      assert.deepStrictEqual(output, [0, 22800000]);
-    });
+      const output = hrTime();
+      assert.deepStrictEqual(output, [2, 22800000]);
+    })
 
     it('should handle nanosecond overflow', () => {
       sandbox.stub(performance, 'timeOrigin').value(11.5);
-      const performanceNow = 11.6;
+      sandbox.stub(performance, 'now').callsFake(() => 11.6);
+      sandbox.stub(Date, "now").returns(11.5 + 11.6)
 
-      const output = hrTime(performanceNow);
+      const output = hrTime();
       assert.deepStrictEqual(output, [0, 23100000]);
-    });
-
-    it('should allow passed "performanceNow" equal to 0', () => {
-      sandbox.stub(performance, 'timeOrigin').value(11.5);
-      sandbox.stub(performance, 'now').callsFake(() => 11.3);
-
-      const output = hrTime(0);
-      assert.deepStrictEqual(output, [0, 11500000]);
-    });
-
-    it('should use performance.now() when "performanceNow" is equal to undefined', () => {
-      sandbox.stub(performance, 'timeOrigin').value(11.5);
-      sandbox.stub(performance, 'now').callsFake(() => 11.3);
-
-      const output = hrTime(undefined);
-      assert.deepStrictEqual(output, [0, 22800000]);
-    });
-
-    it('should use performance.now() when "performanceNow" is equal to null', () => {
-      sandbox.stub(performance, 'timeOrigin').value(11.5);
-      sandbox.stub(performance, 'now').callsFake(() => 11.3);
-
-      const output = hrTime(null as any);
-      assert.deepStrictEqual(output, [0, 22800000]);
     });
 
     describe('when timeOrigin is not available', () => {
       it('should use the performance.timing.fetchStart as a fallback', () => {
+        sandbox.stub(Date, "now").returns(11.5 + 11.3)
         Object.defineProperty(performance, 'timing', {
           writable: true,
           value: {
