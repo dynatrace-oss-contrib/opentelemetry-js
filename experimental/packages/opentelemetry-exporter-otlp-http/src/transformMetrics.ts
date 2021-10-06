@@ -15,7 +15,7 @@
  */
 
 import { SpanAttributes, HrTime } from '@opentelemetry/api';
-import { Labels, ValueType } from '@opentelemetry/api-metrics';
+import { Attributes, ValueType } from '@opentelemetry/api-metrics';
 import * as core from '@opentelemetry/core';
 import {
   AggregatorKind,
@@ -29,14 +29,64 @@ import { toCollectorResource } from './transform';
 import { OTLPExporterConfigBase, opentelemetryProto } from './types';
 
 /**
- * Converts labels
- * @param labels
+ * Converts attributes to string-string key value pairs.
+ * Note that these Labels are deprecated in OpenTelemetry.
+ * @param attributes
  */
 export function toCollectorLabels(
-  labels: Labels
+  attributes: Attributes
 ): opentelemetryProto.common.v1.StringKeyValue[] {
-  return Object.entries(labels).map(([key, value]) => {
+  return Object.entries(attributes).map(([key, value]) => {
     return { key, value: String(value) };
+  });
+}
+
+export function toCollectorAttributes(
+  attributes: Attributes
+): opentelemetryProto.common.v1.KeyValue[] {
+  return Object.entries(attributes).map(([key, value]) => {
+    if (typeof value === 'number') {
+      // TODO: distinguish between int and double?
+      return {key: key, value: {doubleValue: Number(value)}}
+    } else if (typeof value === 'boolean') {
+      return {key: key, value: {boolValue: Boolean(value)}}
+    } else if (Array.isArray(value)) {
+      // there should only be homogeneous arrays coming in.
+      if (value.some(x => typeof x === 'string')) {
+        // transform all to string
+        return { key: key, value: {
+          arrayValue: {
+            values:
+                value.map(x=> {
+                  return {stringValue: String(x)}
+                })
+            }
+          }
+        }
+      } else if (value.every(x => typeof x === 'number')) {
+        return { key: key, value: {
+          arrayValue: {
+            values:
+                value.map(x=> {
+                  return {doubleValue: Number(x)}
+                })
+            }
+          }
+        }
+      } else if (value.every(x => typeof x === 'boolean')) {
+        return { key: key, value: {
+          arrayValue: {
+            values:
+                value.map(x=> {
+                  return {boolValue: Boolean(x)}
+                })
+            }
+          }
+        }
+      }
+    }
+    // if none of the above are true, serialize everything as one string.
+    return {key: key, value: {stringValue: String(value)}}
   });
 }
 
@@ -65,7 +115,7 @@ export function toDataPoint(
   startTime: number
 ): opentelemetryProto.metrics.v1.DataPoint {
   return {
-    labels: toCollectorLabels(metric.labels),
+    attributes: toCollectorAttributes(metric.attributes),
     value: metric.aggregator.toPoint().value as number,
     startTimeUnixNano: startTime,
     timeUnixNano: core.hrTimeToNanoseconds(
@@ -88,7 +138,7 @@ export function toHistogramPoint(
     timestamp: HrTime;
   };
   return {
-    labels: toCollectorLabels(metric.labels),
+    attributes: toCollectorAttributes(metric.attributes),
     sum: value.sum,
     count: value.count,
     startTimeUnixNano: startTime,

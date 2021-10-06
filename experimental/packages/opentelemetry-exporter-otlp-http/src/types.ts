@@ -74,7 +74,9 @@ export namespace opentelemetryProto {
     }
 
     export interface DataPoint {
-      labels: opentelemetryProto.common.v1.StringKeyValue[];
+      // deprecated
+      // labels: opentelemetryProto.common.v1.StringKeyValue[];
+      attributes: opentelemetryProto.common.v1.KeyValue[];
       startTimeUnixNano: number;
       timeUnixNano: number;
       value: number;
@@ -82,7 +84,9 @@ export namespace opentelemetryProto {
     }
 
     export interface Exemplar {
-      filteredLabels: opentelemetryProto.common.v1.StringKeyValue[];
+      // deprecated
+      // filteredLabels: opentelemetryProto.common.v1.StringKeyValue[];
+      filteredAttributes: opentelemetryProto.common.v1.KeyValue[];
       timeUnixNano: number;
       value: number;
       spanId: Uint8Array;
@@ -90,7 +94,9 @@ export namespace opentelemetryProto {
     }
 
     export interface HistogramDataPoint {
-      labels: opentelemetryProto.common.v1.StringKeyValue[];
+      // deprecated
+      // labels: opentelemetryProto.common.v1.StringKeyValue[];
+      attributes: opentelemetryProto.common.v1.KeyValue[];
       startTimeUnixNano: number;
       timeUnixNano: number;
       count: number;

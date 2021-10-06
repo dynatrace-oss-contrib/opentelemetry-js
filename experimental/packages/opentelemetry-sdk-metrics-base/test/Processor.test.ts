@@ -41,7 +41,7 @@ describe('Processor', () => {
       const checkPointSet = meter.getProcessor().checkPointSet();
       assert.strictEqual(checkPointSet.length, 2);
       for (const record of checkPointSet) {
-        switch (record.labels.key) {
+        switch (record.attributes.key) {
           case 'foo':
             assert.strictEqual(record.aggregator.toPoint().value, 1);
             break;

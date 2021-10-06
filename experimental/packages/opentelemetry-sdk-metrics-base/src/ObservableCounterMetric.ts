@@ -46,8 +46,8 @@ export class ObservableCounterMetric
   }
 
   protected override _processResults(observerResult: ObserverResult): void {
-    observerResult.values.forEach((value, labels) => {
-      const instrument = this.bind(labels);
+    observerResult.values.forEach((value, attributes) => {
+      const instrument = this.bind(attributes);
       // ObservableCounter is monotonic which means it should only accept values
       // greater or equal then previous value
       const previous = instrument.getAggregator().toPoint();

@@ -39,8 +39,8 @@ export interface MetricOptions {
    */
   unit?: string;
 
-  /** The map of constant labels for the Metric. */
-  constantLabels?: Map<string, string>;
+  /** The map of constant attributes for the Metric. */
+  constantAttributes?: Attributes;
 
   /**
    * Indicates the metric is a verbose metric that is disabled by default
@@ -98,23 +98,23 @@ export interface Metric {
 
 /**
  * UnboundMetric represents a base class for different types of metric
- * pre aggregations without label value bound yet.
+ * pre aggregations without attribute values bound yet.
  */
 export interface UnboundMetric<T> extends Metric {
   /**
-   * Returns a Instrument associated with specified Labels.
+   * Returns a Instrument associated with specified attributes.
    * It is recommended to keep a reference to the Instrument instead of always
    * calling this method for every operations.
-   * @param labels key-values pairs that are associated with a specific metric
+   * @param attributes key-values pairs that are associated with a specific metric
    *     that you want to record.
    */
-  bind(labels: Labels): T;
+  bind(attributes: Attributes): T;
 
   /**
    * Removes the Instrument from the metric, if it is present.
-   * @param labels key-values pairs that are associated with a specific metric.
+   * @param attributes key-values pairs that are associated with a specific metric.
    */
-  unbind(labels: Labels): void;
+  unbind(attributes: Attributes): void;
 }
 
 /**
@@ -136,21 +136,21 @@ export interface Counter extends UnboundMetric<BoundCounter> {
   /**
    * Adds the given value to the current value. Values cannot be negative.
    */
-  add(value: number, labels?: Labels): void;
+  add(value: number, attributes?: Attributes): void;
 }
 
 export interface UpDownCounter extends UnboundMetric<BoundCounter> {
   /**
    * Adds the given value to the current value. Values can be negative.
    */
-  add(value: number, labels?: Labels): void;
+  add(value: number, attributes?: Attributes): void;
 }
 
 export interface Histogram extends UnboundMetric<BoundHistogram> {
   /**
    * Records the given value to this histogram.
    */
-  record(value: number, labels?: Labels): void;
+  record(value: number, attributes?: Attributes): void;
 }
 
 /** Base interface for the Observer metrics. */
@@ -175,4 +175,5 @@ export type ObservableCounter = BaseObservable;
 /**
  * key-value pairs passed by the user.
  */
-export type Labels = { [key: string]: string };
+export type AttributeValue = string | number | string[] | number[] | boolean | boolean[];
+export type Attributes = { [key: string]: AttributeValue };

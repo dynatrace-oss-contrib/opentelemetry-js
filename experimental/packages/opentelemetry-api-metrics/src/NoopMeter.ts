@@ -19,7 +19,7 @@ import { Meter } from './types/Meter';
 import {
   MetricOptions,
   UnboundMetric,
-  Labels,
+  Attributes,
   Counter,
   Histogram,
   ObservableGauge,
@@ -132,21 +132,21 @@ export class NoopMetric<T> implements UnboundMetric<T> {
   }
 
   /**
-   * Returns a Bound Instrument associated with specified Labels.
+   * Returns a Bound Instrument associated with specified attributes.
    * It is recommended to keep a reference to the Bound Instrument instead of
    * always calling this method for every operations.
-   * @param labels key-values pairs that are associated with a specific metric
+   * @param _attributes key-values pairs that are associated with a specific metric
    *     that you want to record.
    */
-  bind(_labels: Labels): T {
+  bind(_attributes: Attributes): T {
     return this._instrument;
   }
 
   /**
    * Removes the Binding from the metric, if it is present.
-   * @param labels key-values pairs that are associated with a specific metric.
+   * @param _attributes key-values pairs that are associated with a specific metric.
    */
-  unbind(_labels: Labels): void {
+  unbind(_attributes: Attributes): void {
     return;
   }
 
@@ -161,16 +161,16 @@ export class NoopMetric<T> implements UnboundMetric<T> {
 export class NoopCounterMetric
   extends NoopMetric<BoundCounter>
   implements Counter {
-  add(value: number, labels: Labels): void {
-    this.bind(labels).add(value);
+  add(value: number, attributes: Attributes): void {
+    this.bind(attributes).add(value);
   }
 }
 
 export class NoopHistogramMetric
   extends NoopMetric<BoundHistogram>
   implements Histogram {
-  record(value: number, labels: Labels): void {
-    this.bind(labels).record(value);
+  record(value: number, attributes: Attributes): void {
+    this.bind(attributes).record(value);
   }
 }
 

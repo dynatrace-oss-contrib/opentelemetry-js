@@ -158,7 +158,7 @@ describe('transformMetrics', () => {
       );
     });
 
-    it('should convert metric labels value to string', () => {
+    it('should convert attributes to OTEL KeyValue pairs', () => {
       const metric = transform.toCollectorMetric(
         {
           descriptor: {
@@ -168,7 +168,14 @@ describe('transformMetrics', () => {
             metricKind: 0,
             valueType: 0,
           },
-          labels: { foo: (1 as unknown) as string },
+          attributes: {
+            aNumber: 1,
+            listOfNumbers: [1, 3, 5],
+            aString: 'testString',
+            listOfStrings: ['test', 'string', 'list'],
+            aBoolean: true,
+            listOfBooleans: [true, false, true],
+          },
           aggregator: new SumAggregator(),
           resource: new Resource({}),
           aggregationTemporality: 0,
@@ -177,7 +184,18 @@ describe('transformMetrics', () => {
         1592602232694000000
       );
       const collectorMetric = metric.intSum?.dataPoints[0];
-      assert.strictEqual(collectorMetric?.labels[0].value, '1');
+      assert.deepStrictEqual(collectorMetric?.attributes[0].value, {doubleValue: 1});
+      assert.deepStrictEqual(collectorMetric?.attributes[1].value.arrayValue?.values[0], {doubleValue: 1});
+      assert.deepStrictEqual(collectorMetric?.attributes[1].value.arrayValue?.values[1], {doubleValue: 3});
+      assert.deepStrictEqual(collectorMetric?.attributes[1].value.arrayValue?.values[2], {doubleValue: 5});
+      assert.deepStrictEqual(collectorMetric?.attributes[2].value, {stringValue: 'testString'});
+      assert.deepStrictEqual(collectorMetric?.attributes[3].value.arrayValue?.values[0], {stringValue: 'test'});
+      assert.deepStrictEqual(collectorMetric?.attributes[3].value.arrayValue?.values[1], {stringValue: 'string'});
+      assert.deepStrictEqual(collectorMetric?.attributes[3].value.arrayValue?.values[2], {stringValue: 'list'});
+      assert.deepStrictEqual(collectorMetric?.attributes[4].value, {boolValue: true});
+      assert.deepStrictEqual(collectorMetric?.attributes[5].value.arrayValue?.values[0], {boolValue: true});
+      assert.deepStrictEqual(collectorMetric?.attributes[5].value.arrayValue?.values[1], {boolValue: false});
+      assert.deepStrictEqual(collectorMetric?.attributes[5].value.arrayValue?.values[2], {boolValue: true});
     });
   });
 
