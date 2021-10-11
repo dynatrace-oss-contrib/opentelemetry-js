@@ -19,7 +19,7 @@ import {
   MetricKind,
 } from '@opentelemetry/sdk-metrics-base';
 import { PrometheusCheckpoint } from './types';
-import { Labels } from '@opentelemetry/api-metrics';
+import { Attributes, AttributeValue } from '@opentelemetry/api-metrics';
 import { hrTimeToMilliseconds } from '@opentelemetry/core';
 
 type PrometheusDataTypeLiteral =
@@ -33,10 +33,7 @@ function escapeString(str: string) {
   return str.replace(/\\/g, '\\\\').replace(/\n/g, '\\n');
 }
 
-function escapeLabelValue(str: string) {
-  if (typeof str !== 'string') {
-    str = String(str);
-  }
+function escapeAttributeValue(str: string) {
   return escapeString(str).replace(/"/g, '\\"');
 }
 
@@ -123,38 +120,51 @@ function toPrometheusType(
 
 function stringify(
   metricName: string,
-  labels: Labels,
+  attributes: Attributes,
   value: number,
   timestamp?: number,
-  additionalLabels?: Labels
+  additionalAttributes?: Attributes
 ) {
-  let hasLabel = false;
-  let labelsStr = '';
+  let hasAttribute = false;
+  let attributesStr = '';
 
-  for (const [key, val] of Object.entries(labels)) {
-    const sanitizedLabelName = sanitizePrometheusMetricName(key);
-    hasLabel = true;
-    labelsStr += `${
-      labelsStr.length > 0 ? ',' : ''
-    }${sanitizedLabelName}="${escapeLabelValue(val)}"`;
+  for (const [key, val] of Object.entries(attributes)) {
+    const sanitizedAttributeName = sanitizePrometheusMetricName(key);
+    hasAttribute = true;
+    attributesStr += `${
+      attributesStr.length > 0 ? ',' : ''
+    }${sanitizedAttributeName}="${escapeAttributeValue(stringifyAttributeValue(val))}"`;
   }
-  if (additionalLabels) {
-    for (const [key, val] of Object.entries(additionalLabels)) {
-      const sanitizedLabelName = sanitizePrometheusMetricName(key);
-      hasLabel = true;
-      labelsStr += `${
-        labelsStr.length > 0 ? ',' : ''
-      }${sanitizedLabelName}="${escapeLabelValue(val)}"`;
+  if (additionalAttributes) {
+    for (const [key, val] of Object.entries(additionalAttributes)) {
+      const sanitizedAttributeName = sanitizePrometheusMetricName(key);
+      hasAttribute = true;
+      attributesStr += `${
+        attributesStr.length > 0 ? ',' : ''
+      }${sanitizedAttributeName}="${escapeAttributeValue(stringifyAttributeValue(val))}"`;
     }
   }
 
-  if (hasLabel) {
-    metricName += `{${labelsStr}}`;
+  if (hasAttribute) {
+    metricName += `{${attributesStr}}`;
   }
 
   return `${metricName} ${valueString(value)}${
     timestamp !== undefined ? ' ' + String(timestamp) : ''
   }\n`;
+}
+
+function stringifyAttributeValue(value: AttributeValue) :string {
+  if (Array.isArray(value)) {
+    if (value.some(x => typeof x === 'string')) {
+      // serialize a list of strings with double quotes around the strings
+      return '[' + value.map(x=> `"${x}"`).join(',') + ']';
+    }
+    // serialize other lists without double quotes
+    return '[' + value.map(x => String(x)).join(',')  + ']';
+  }
+  // serialize everything else as string without quotes.
+  return String(value);
 }
 
 export class PrometheusSerializer {
@@ -219,7 +229,7 @@ export class PrometheusSerializer {
         const timestamp = hrTimeToMilliseconds(hrtime);
         results += stringify(
           name,
-          record.labels,
+          record.attributes,
           value,
           this._appendTimestamp ? timestamp : undefined,
           undefined
@@ -233,7 +243,7 @@ export class PrometheusSerializer {
         for (const key of ['count', 'sum'] as ('count' | 'sum')[]) {
           results += stringify(
             name + '_' + key,
-            record.labels,
+            record.attributes,
             value[key],
             this._appendTimestamp ? timestamp : undefined,
             undefined
@@ -260,7 +270,7 @@ export class PrometheusSerializer {
           }
           results += stringify(
             name + '_bucket',
-            record.labels,
+            record.attributes,
             cumulativeSum,
             this._appendTimestamp ? timestamp : undefined,
             {
