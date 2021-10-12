@@ -57,13 +57,14 @@ export function toCollectorAttributes(
         return { key: key, value: {
           arrayValue: {
             values:
-                value.map(x=> {
+                value.map(x => {
                   return {stringValue: String(x)}
                 })
             }
           }
         }
-      } else if (value.every(x => typeof x === 'number')) {
+      } else if (value.map(x => typeof x).every(x => x === 'number')) {
+         // all values in the array are numeric
         return { key: key, value: {
           arrayValue: {
             values:
@@ -73,7 +74,8 @@ export function toCollectorAttributes(
             }
           }
         }
-      } else if (value.every(x => typeof x === 'boolean')) {
+      } else if (value.map(x => typeof x).every(x => x === 'boolean')) {
+        // all elements of the array are booleans
         return { key: key, value: {
           arrayValue: {
             values:
