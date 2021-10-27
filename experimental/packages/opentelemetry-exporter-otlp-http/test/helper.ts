@@ -562,7 +562,7 @@ export function ensureCounterIsCorrect(
     intSum: {
       dataPoints: [
         {
-          labels: [],
+          attributes: [],
           value: 1,
           startTimeUnixNano: 1592602232694000000,
           timeUnixNano: time,
@@ -587,7 +587,7 @@ export function ensureDoubleCounterIsCorrect(
     doubleSum: {
       dataPoints: [
         {
-          labels: [],
+          attributes: [],
           value: 8,
           startTimeUnixNano: 1592602232694000000,
           timeUnixNano: time,
@@ -614,7 +614,7 @@ export function ensureObservableGaugeIsCorrect(
     doubleGauge: {
       dataPoints: [
         {
-          labels: [],
+          attributes: [],
           value,
           startTimeUnixNano: 1592602232694000000,
           timeUnixNano: time,
@@ -638,7 +638,7 @@ export function ensureObservableCounterIsCorrect(
       isMonotonic: true,
       dataPoints: [
         {
-          labels: [],
+          attributes: [],
           value,
           startTimeUnixNano: 1592602232694000000,
           timeUnixNano: time,
@@ -665,7 +665,7 @@ export function ensureObservableUpDownCounterIsCorrect(
       isMonotonic: false,
       dataPoints: [
         {
-          labels: [],
+          attributes: [],
           value,
           startTimeUnixNano: 1592602232694000000,
           timeUnixNano: time,
@@ -691,7 +691,7 @@ export function ensureHistogramIsCorrect(
     intHistogram: {
       dataPoints: [
         {
-          labels: [],
+          attributes: [],
           sum: 21,
           count: 2,
           startTimeUnixNano: 1592602232694000000,

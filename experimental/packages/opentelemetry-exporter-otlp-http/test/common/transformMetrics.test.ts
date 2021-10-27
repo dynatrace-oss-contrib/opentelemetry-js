@@ -158,7 +158,7 @@ describe('transformMetrics', () => {
       );
     });
 
-    it('should convert metric labels value to string', () => {
+    it('should convert metric attributes value to string', () => {
       const metric = transform.toCollectorMetric(
         {
           descriptor: {
@@ -168,7 +168,7 @@ describe('transformMetrics', () => {
             metricKind: 0,
             valueType: 0,
           },
-          labels: { foo: (1 as unknown) as string },
+          attributes: { foo: (1 as unknown) as string },
           aggregator: new SumAggregator(),
           resource: new Resource({}),
           aggregationTemporality: 0,
@@ -177,7 +177,7 @@ describe('transformMetrics', () => {
         1592602232694000000
       );
       const collectorMetric = metric.intSum?.dataPoints[0];
-      assert.strictEqual(collectorMetric?.labels[0].value, '1');
+      assert.strictEqual(collectorMetric?.attributes[0].value, '1');
     });
   });
 

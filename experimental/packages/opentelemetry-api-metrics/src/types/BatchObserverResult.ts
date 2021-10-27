@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Labels } from './Metric';
+import { Attributes } from './Metric';
 import { Observation } from './Observation';
 
 /**
@@ -22,9 +22,9 @@ import { Observation } from './Observation';
  */
 export interface BatchObserverResult {
   /**
-   * Used to observe (update) observations for certain labels
-   * @param labels
+   * Used to observe (update) observations for certain attributes
+   * @param attributes
    * @param observations
    */
-  observe(labels: Labels, observations: Observation[]): void;
+  observe(attributes: Attributes, observations: Observation[]): void;
 }

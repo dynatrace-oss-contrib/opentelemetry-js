@@ -31,7 +31,7 @@ import { ObservableResult } from './ObservableResult';
  * An interface to allow the recording metrics.
  *
  * {@link Metric}s are used for recording pre-defined aggregation (`Counter`),
- * or raw values (`Histogram`) in which the aggregation and labels
+ * or raw values (`Histogram`) in which the aggregation and attributes
  * for the exported metric are deferred.
  */
 export interface Meter {

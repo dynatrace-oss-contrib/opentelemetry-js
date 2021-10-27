@@ -41,7 +41,7 @@ describe('Processor', () => {
       const checkPointSet = meter.getProcessor().checkPointSet();
       assert.strictEqual(checkPointSet.length, 2);
       for (const record of checkPointSet) {
-        switch (record.labels.key) {
+        switch (record.attributes.key) {
           case 'foo':
             assert.strictEqual(record.aggregator.toPoint().value, 1);
             break;
@@ -49,7 +49,7 @@ describe('Processor', () => {
             assert.strictEqual(record.aggregator.toPoint().value, 3);
             break;
           default:
-            throw new Error('Unknown labelset');
+            throw new Error('Unknown attributeset');
         }
       }
     });

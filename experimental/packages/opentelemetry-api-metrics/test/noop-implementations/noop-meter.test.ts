@@ -27,23 +27,23 @@ describe('NoopMeter', () => {
   it('should not crash', () => {
     const meter = new NoopMeterProvider().getMeter('test-noop');
     const counter = meter.createCounter('some-name');
-    const labels = {};
+    const attributes = {};
 
     // ensure NoopMetric does not crash.
-    counter.bind(labels).add(1);
-    counter.unbind(labels);
+    counter.bind(attributes).add(1);
+    counter.unbind(attributes);
 
     // ensure the correct noop const is returned
     assert.strictEqual(counter, NOOP_COUNTER_METRIC);
-    assert.strictEqual(counter.bind(labels), NOOP_BOUND_COUNTER);
+    assert.strictEqual(counter.bind(attributes), NOOP_BOUND_COUNTER);
     counter.clear();
 
     const histogram = meter.createHistogram('some-name');
-    histogram.bind(labels).record(1);
+    histogram.bind(attributes).record(1);
 
     // ensure the correct noop const is returned
     assert.strictEqual(histogram, NOOP_HISTOGRAM_METRIC);
-    assert.strictEqual(histogram.bind(labels), NOOP_BOUND_HISTOGRAM);
+    assert.strictEqual(histogram.bind(attributes), NOOP_BOUND_HISTOGRAM);
 
     const options = {
       component: 'tests',

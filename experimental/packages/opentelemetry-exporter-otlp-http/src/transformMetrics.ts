@@ -15,7 +15,7 @@
  */
 
 import { SpanAttributes, HrTime } from '@opentelemetry/api';
-import { Labels, ValueType } from '@opentelemetry/api-metrics';
+import { Attributes, ValueType } from '@opentelemetry/api-metrics';
 import * as core from '@opentelemetry/core';
 import {
   AggregatorKind,
@@ -29,13 +29,13 @@ import { toCollectorResource } from './transform';
 import { OTLPExporterConfigBase, opentelemetryProto } from './types';
 
 /**
- * Converts labels
- * @param labels
+ * Converts attributes
+ * @param attributes
  */
-export function toCollectorLabels(
-  labels: Labels
+export function toCollectorAttributes(
+  attributes: Attributes
 ): opentelemetryProto.common.v1.StringKeyValue[] {
-  return Object.entries(labels).map(([key, value]) => {
+  return Object.entries(attributes).map(([key, value]) => {
     return { key, value: String(value) };
   });
 }
@@ -65,7 +65,7 @@ export function toDataPoint(
   startTime: number
 ): opentelemetryProto.metrics.v1.DataPoint {
   return {
-    labels: toCollectorLabels(metric.labels),
+    attributes: toCollectorAttributes(metric.attributes),
     value: metric.aggregator.toPoint().value as number,
     startTimeUnixNano: startTime,
     timeUnixNano: core.hrTimeToNanoseconds(
@@ -88,7 +88,7 @@ export function toHistogramPoint(
     timestamp: HrTime;
   };
   return {
-    labels: toCollectorLabels(metric.labels),
+    attributes: toCollectorAttributes(metric.attributes),
     sum: value.sum,
     count: value.count,
     startTimeUnixNano: startTime,

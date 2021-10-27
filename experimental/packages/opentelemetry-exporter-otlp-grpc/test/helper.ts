@@ -339,7 +339,7 @@ export function ensureExportedCounterIsCorrect(
     intSum: {
       dataPoints: [
         {
-          labels: [],
+          attributes: [],
           exemplars: [],
           value: '1',
           startTimeUnixNano: '1592602232694000128',
@@ -364,7 +364,7 @@ export function ensureExportedObservableGaugeIsCorrect(
     doubleGauge: {
       dataPoints: [
         {
-          labels: [],
+          attributes: [],
           exemplars: [],
           value: 6,
           startTimeUnixNano: '1592602232694000128',
@@ -389,7 +389,7 @@ export function ensureExportedHistogramIsCorrect(
     intHistogram: {
       dataPoints: [
         {
-          labels: [],
+          attributes: [],
           exemplars: [],
           sum: '21',
           count: '2',

@@ -50,7 +50,7 @@ export abstract class OTLPExporterNodeBase<
     const promise = new Promise<void>((resolve, reject) => {
       this._send(this, objects, this.compression, resolve, reject);
     })
-      .then(onSuccess, onError);
+    .then(onSuccess, onError);
 
     this._sendingPromises.push(promise);
     const popPromise = () => {
