@@ -149,7 +149,7 @@ export abstract class InstrumentationBase<T = any>
       return;
     }
 
-    this._warnOnPreloadedModules();
+    // this._warnOnPreloadedModules();
     for (const module of this._modules) {
       this._hooks.push(
         RequireInTheMiddle(
