@@ -43,7 +43,7 @@ counter.add(10, { 'key': 'value' });
 
 ## Running opentelemetry-collector locally to see the metrics
 
-1. Go to `examples/otlp-exporter-node`
+1. Go to `experimental/examples/otlp-exporter-node`
 2. Follow the instructions there to observe the metrics.
 
 ## Useful links

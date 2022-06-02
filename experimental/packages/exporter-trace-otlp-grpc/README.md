@@ -121,7 +121,7 @@ The OTLPTraceExporter has a timeout configuration option which is the maximum ti
     url: '<collector-hostname>:<port>',
     metadata, // // an optional grpc.Metadata object to be sent with each request
   };
-    
+
   const exporter = new OTLPTraceExporter(collectorOptions);
   ```
 
@@ -166,7 +166,7 @@ const exporter = new OTLPTraceExporter(collectorOptions);
 
 ## Running opentelemetry-collector locally to see the traces
 
-1. Go to `examples/otlp-exporter-node`
+1. Go to `experimental/examples/otlp-exporter-node`
 2. Follow the instructions there to inspect traces.
 
 ## Useful links

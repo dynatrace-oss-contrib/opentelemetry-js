@@ -141,7 +141,7 @@ To override the default timeout duration, use the following options:
 
 ## Running opentelemetry-collector locally to see the traces
 
-1. Go to `examples/otlp-exporter-node`
+1. Go to `experimental/examples/otlp-exporter-node`
 2. Follow the instructions there to inspect traces.
 
 ## Useful links
