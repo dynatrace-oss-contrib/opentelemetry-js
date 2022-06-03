@@ -34,7 +34,7 @@ class MockCollectorExporter extends OTLPGRPCExporterNodeBase<
   }[] = [];
 
   getDefaultUrl(config: OTLPGRPCExporterConfigNode): string {
-    return '';
+    return 'localhost:4317';
   }
 
   getDefaultServiceName(config: OTLPGRPCExporterConfigNode): string {
@@ -51,6 +51,10 @@ class MockCollectorExporter extends OTLPGRPCExporterNodeBase<
 
   getServiceProtoPath(): string {
     return 'opentelemetry/proto/collector/trace/v1/trace_service.proto';
+  }
+
+  getUrlFromConfig(): string {
+    return 'localhost:4317';
   }
 }
 

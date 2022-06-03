@@ -21,8 +21,7 @@ import {
   OTLPGRPCExporterConfigNode,
   OTLPGRPCExporterNodeBase,
   ServiceClientType,
-  validateAndNormalizeUrl,
-  DEFAULT_COLLECTOR_URL
+  DEFAULT_COLLECTOR_URL, validateAndNormalizeUrl
 } from '@opentelemetry/otlp-grpc-exporter-base';
 import { createExportTraceServiceRequest, IExportTraceServiceRequest } from '@opentelemetry/otlp-transformer';
 
@@ -48,13 +47,7 @@ export class OTLPTraceExporter
   }
 
   getDefaultUrl(config: OTLPGRPCExporterConfigNode) {
-    return typeof config.url === 'string'
-      ? validateAndNormalizeUrl(config.url)
-      : getEnv().OTEL_EXPORTER_OTLP_TRACES_ENDPOINT.length > 0
-        ? validateAndNormalizeUrl(getEnv().OTEL_EXPORTER_OTLP_TRACES_ENDPOINT)
-        : getEnv().OTEL_EXPORTER_OTLP_ENDPOINT.length > 0
-          ? validateAndNormalizeUrl(getEnv().OTEL_EXPORTER_OTLP_ENDPOINT)
-          : validateAndNormalizeUrl(DEFAULT_COLLECTOR_URL);
+    return validateAndNormalizeUrl(this.getUrlFromConfig(config));
   }
 
   getServiceClientType() {
@@ -63,5 +56,17 @@ export class OTLPTraceExporter
 
   getServiceProtoPath(): string {
     return 'opentelemetry/proto/collector/trace/v1/trace_service.proto';
+  }
+
+  getUrlFromConfig(config: OTLPGRPCExporterConfigNode): string {
+    if (typeof config.url === 'string') {
+      return config.url;
+    } else if (getEnv().OTEL_EXPORTER_OTLP_TRACES_ENDPOINT.length > 0) {
+      return getEnv().OTEL_EXPORTER_OTLP_TRACES_ENDPOINT;
+    } else if (getEnv().OTEL_EXPORTER_OTLP_ENDPOINT.length > 0) {
+      return getEnv().OTEL_EXPORTER_OTLP_ENDPOINT;
+    } else {
+      return DEFAULT_COLLECTOR_URL;
+    }
   }
 }
