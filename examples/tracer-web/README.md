@@ -31,7 +31,7 @@ The development modes includes source maps via the webpack devtool `eval-source-
 
 ## Examples
 
-The examples includes several variants so that you can see how to mix and match individual components and the impact this can have on the resulting bundle size.
+The examples include several variants so that you can see how to mix and match individual components and the impact this can have on the resulting bundle size.
 
 ### XMLHttpRequest
 

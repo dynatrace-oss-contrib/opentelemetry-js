@@ -63,4 +63,10 @@ module.exports = webpackMerge.merge(common, {
       'process.env.NODE_ENV': JSON.stringify('development'),
     }),
   ],
+  resolve: {
+    fallback:
+      {
+        "os": require.resolve("os-browserify/browser")
+      }
+  }
 });
