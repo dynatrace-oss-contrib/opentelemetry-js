@@ -42,6 +42,7 @@ import * as semver from 'semver';
 import * as Sinon from 'sinon';
 import { NodeSDK } from '../src';
 import { envDetector, processDetector } from '@opentelemetry/resources';
+import { TestMetricReader } from '@opentelemetry/sdk-metrics-base/build/test/export/TestMetricReader';
 
 
 const DefaultContextManager = semver.gte(process.version, '14.8.0')
@@ -209,41 +210,47 @@ describe('Node SDK', () => {
     await sdk.shutdown();
   });
 
-  it('should warn user when meter views are provided but not a MetricReader', async () => {
+  it('should throw when views have already been set', async () => {
+    const sdk = new NodeSDK({
+      views: [
+        new View({
+          name: 'test-view',
+          instrumentName: 'test_counter',
+          instrumentType: InstrumentType.COUNTER,
+        })
+      ],
+      autoDetectResources: false,
+    });
     assert.throws(
       () => {
-        new NodeSDK({
-          views: [
-            new View({
-              name: 'test-view',
-              instrumentName: 'test_counter',
-              instrumentType: InstrumentType.COUNTER,
-            })
-          ],
-          autoDetectResources: false,
+        sdk.configureMeterProvider({
+          reader: new TestMetricReader(),
+          views: []
         });
       }, (error: Error) => {
-        return error.message === 'You have not passed a MetricReader instance but have passed Views, you need to manually pass the Views to your MeterProvider instance.';
+        return error.message === 'Views passed but Views have already been configured.';
       });
   });
 
-  it('should warn user when meter views are provided but not a MetricReader when calling configureMeterProvider', async () => {
+  it('should throw when reader has already been set', async () => {
+    const sdk = new NodeSDK({
+      views: [
+        new View({
+          name: 'test-view',
+          instrumentName: 'test_counter',
+          instrumentType: InstrumentType.COUNTER,
+        })
+      ],
+      autoDetectResources: false,
+      metricReader: new TestMetricReader()
+    });
     assert.throws(
       () => {
-        const sdk = new NodeSDK({
-          autoDetectResources: false,
-        });
         sdk.configureMeterProvider({
-          views: [
-            new View({
-              name: 'test-view',
-              instrumentName: 'test_counter',
-              instrumentType: InstrumentType.COUNTER,
-            })
-          ],
-        })
+          reader: new TestMetricReader()
+        });
       }, (error: Error) => {
-        return error.message === 'You have not passed a MetricReader instance but have passed Views, you need to manually pass the Views to your MeterProvider instance.';
+        return error.message === 'MetricReader passed but MetricReader has already been configured.';
       });
   });
 
@@ -268,7 +275,7 @@ describe('Node SDK', () => {
               throw new Error('Buggy detector');
             }
           },
-            envDetector]
+          envDetector]
         });
         const resource = sdk['_resource'];
 

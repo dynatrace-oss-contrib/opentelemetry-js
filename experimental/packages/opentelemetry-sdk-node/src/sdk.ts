@@ -129,10 +129,17 @@ export class NodeSDK {
 
   /** Set configurations needed to register a MeterProvider */
   public configureMeterProvider(config: MeterProviderConfig): void {
-    this._meterProviderConfig = config;
+    if(this._meterProviderConfig == null){
+      this._meterProviderConfig = config;
+      return;
+    }
 
-    if (!this._meterProviderConfig.reader && this._meterProviderConfig.views) {
-      throw new Error('You have not passed a MetricReader instance but have passed Views, you need to manually pass the Views to your MeterProvider instance.');
+    if(this._meterProviderConfig.views != null && config.views != null) {
+      throw new Error('Views passed but Views have already been configured.');
+    }
+
+    if(this._meterProviderConfig.reader != null && config.reader != null) {
+      throw new Error('MetricReader passed but MetricReader has already been configured.');
     }
   }
 
