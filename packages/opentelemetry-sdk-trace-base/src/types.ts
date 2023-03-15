@@ -15,7 +15,7 @@
  */
 
 import { ContextManager, TextMapPropagator } from '@opentelemetry/api';
-import { IResource } from '@opentelemetry/resources';
+import { Resource } from '@opentelemetry/resources';
 import { IdGenerator } from './IdGenerator';
 import { Sampler } from './Sampler';
 
@@ -35,7 +35,7 @@ export interface TracerConfig {
   spanLimits?: SpanLimits;
 
   /** Resource associated with trace telemetry  */
-  resource?: IResource;
+  resource?: Resource;
 
   /**
    * Generator of trace and span IDs

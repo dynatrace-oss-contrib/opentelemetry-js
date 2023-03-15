@@ -16,7 +16,7 @@
 import { Suite } from 'mocha';
 import * as assert from 'assert';
 import { BROWSER_ATTRIBUTES } from '../src/types';
-import { IResource } from '@opentelemetry/resources';
+import { Resource } from '@opentelemetry/resources';
 
 export function describeBrowser(title: string, fn: (this: Suite) => void) {
   title = `Browser: ${title}`;
@@ -27,7 +27,7 @@ export function describeBrowser(title: string, fn: (this: Suite) => void) {
 }
 
 export const assertResource = (
-  resource: IResource,
+  resource: Resource,
   validations: {
     platform?: string;
     brands?: string[];
@@ -74,6 +74,6 @@ export const assertResource = (
  *
  * @param resource the Resource to validate
  */
-export const assertEmptyResource = (resource: IResource) => {
+export const assertEmptyResource = (resource: Resource) => {
   assert.strictEqual(Object.keys(resource.attributes).length, 0);
 };

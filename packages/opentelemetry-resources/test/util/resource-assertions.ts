@@ -16,7 +16,7 @@
 
 import { SDK_INFO } from '@opentelemetry/core';
 import * as assert from 'assert';
-import { IResource } from '../../src/IResource';
+import { Resource } from '../../src/Resource';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 
 /**
@@ -26,7 +26,7 @@ import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions'
  * @param validations validations for the resource attributes
  */
 export const assertCloudResource = (
-  resource: IResource,
+  resource: Resource,
   validations: {
     provider?: string;
     accountId?: string;
@@ -64,7 +64,7 @@ export const assertCloudResource = (
  * @param validations validations for the resource attributes
  */
 export const assertContainerResource = (
-  resource: IResource,
+  resource: Resource,
   validations: {
     name?: string;
     id?: string;
@@ -102,7 +102,7 @@ export const assertContainerResource = (
  * @param validations validations for the resource attributes
  */
 export const assertHostResource = (
-  resource: IResource,
+  resource: Resource,
   validations: {
     hostName?: string;
     id?: string;
@@ -153,7 +153,7 @@ export const assertHostResource = (
  * @param validations validations for the resource attributes
  */
 export const assertK8sResource = (
-  resource: IResource,
+  resource: Resource,
   validations: {
     clusterName?: string;
     namespaceName?: string;
@@ -191,7 +191,7 @@ export const assertK8sResource = (
  * @param validations validations for the resource attributes
  */
 export const assertTelemetrySDKResource = (
-  resource: IResource,
+  resource: Resource,
   validations: {
     name?: string;
     language?: string;
@@ -229,7 +229,7 @@ export const assertTelemetrySDKResource = (
  * @param validations validations for the resource attributes
  */
 export const assertServiceResource = (
-  resource: IResource,
+  resource: Resource,
   validations: {
     name: string;
     instanceId: string;
@@ -264,7 +264,7 @@ export const assertServiceResource = (
  * @param validations validations for the resource attributes
  */
 export const assertResource = (
-  resource: IResource,
+  resource: Resource,
   validations: {
     pid?: number;
     name?: string;
@@ -320,7 +320,7 @@ export const assertResource = (
 };
 
 export const assertWebEngineResource = (
-  resource: IResource,
+  resource: Resource,
   validations: {
     name?: string;
     version?: string;
@@ -352,11 +352,11 @@ export const assertWebEngineResource = (
  *
  * @param resource the Resource to validate
  */
-export const assertEmptyResource = (resource: IResource) => {
+export const assertEmptyResource = (resource: Resource) => {
   assert.strictEqual(Object.keys(resource.attributes).length, 0);
 };
 
-const assertHasOneLabel = (prefix: string, resource: IResource): void => {
+const assertHasOneLabel = (prefix: string, resource: Resource): void => {
   const hasOne = Object.entries(SemanticResourceAttributes).find(
     ([key, value]) => {
       return (

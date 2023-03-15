@@ -18,6 +18,7 @@ import * as api from '@opentelemetry/api';
 import { ReadableSpan, TimedEvent } from '@opentelemetry/sdk-trace-base';
 import { hrTimeToMicroseconds } from '@opentelemetry/core';
 import * as zipkinTypes from './types';
+import { Resource } from '@opentelemetry/resources';
 
 const ZIPKIN_SPAN_KIND_MAPPING = {
   [api.SpanKind.CLIENT]: zipkinTypes.SpanKind.CLIENT,
@@ -50,7 +51,13 @@ export function toZipkinSpan(
     timestamp: hrTimeToMicroseconds(span.startTime),
     duration: hrTimeToMicroseconds(span.duration),
     localEndpoint: { serviceName },
-    tags: _toZipkinTags(span, statusCodeTagName, statusErrorTagName),
+    tags: _toZipkinTags(
+      span.attributes,
+      span.status,
+      statusCodeTagName,
+      statusErrorTagName,
+      span.resource
+    ),
     annotations: span.events.length
       ? _toZipkinAnnotations(span.events)
       : undefined,
@@ -59,18 +66,13 @@ export function toZipkinSpan(
   return zipkinSpan;
 }
 
-/** Converts OpenTelemetry Span properties to Zipkin Tags format. */
+/** Converts OpenTelemetry SpanAttributes and SpanStatus to Zipkin Tags format. */
 export function _toZipkinTags(
-  {
-    attributes,
-    resource,
-    status,
-    droppedAttributesCount,
-    droppedEventsCount,
-    droppedLinksCount,
-  }: ReadableSpan,
+  attributes: api.SpanAttributes,
+  status: api.SpanStatus,
   statusCodeTagName: string,
-  statusErrorTagName: string
+  statusErrorTagName: string,
+  resource: Resource
 ): zipkinTypes.Tags {
   const tags: { [key: string]: string } = {};
   for (const key of Object.keys(attributes)) {
@@ -81,20 +83,6 @@ export function _toZipkinTags(
   }
   if (status.code === api.SpanStatusCode.ERROR && status.message) {
     tags[statusErrorTagName] = status.message;
-  }
-  /* Add droppedAttributesCount as a tag */
-  if (droppedAttributesCount) {
-    tags['otel.dropped_attributes_count'] = String(droppedAttributesCount);
-  }
-
-  /* Add droppedEventsCount as a tag */
-  if (droppedEventsCount) {
-    tags['otel.dropped_events_count'] = String(droppedEventsCount);
-  }
-
-  /* Add droppedLinksCount as a tag */
-  if (droppedLinksCount) {
-    tags['otel.dropped_links_count'] = String(droppedLinksCount);
   }
 
   Object.keys(resource.attributes).forEach(

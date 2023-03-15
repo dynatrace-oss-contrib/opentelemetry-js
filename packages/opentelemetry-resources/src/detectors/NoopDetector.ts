@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
+import { Resource } from '../Resource';
 import { Detector } from '../types';
-import { IResource } from '../IResource';
-import { noopDetectorSync } from './NoopDetectorSync';
 
 export class NoopDetector implements Detector {
-  detect(): Promise<IResource> {
-    return Promise.resolve(noopDetectorSync.detect());
+  async detect(): Promise<Resource> {
+    return new Resource({});
   }
 }
 

@@ -29,7 +29,7 @@ import {
   getEnv,
   merge,
 } from '@opentelemetry/core';
-import { IResource, Resource } from '@opentelemetry/resources';
+import { Resource } from '@opentelemetry/resources';
 import { SpanProcessor, Tracer } from '.';
 import { loadDefaultConfig } from './config';
 import { MultiSpanProcessor } from './MultiSpanProcessor';
@@ -71,7 +71,7 @@ export class BasicTracerProvider implements TracerProvider {
   private readonly _tracers: Map<string, Tracer> = new Map();
 
   activeSpanProcessor: SpanProcessor;
-  readonly resource: IResource;
+  readonly resource: Resource;
 
   constructor(config: TracerConfig = {}) {
     const mergedConfig = merge(

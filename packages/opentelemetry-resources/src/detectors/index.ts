@@ -17,6 +17,3 @@
 export * from './BrowserDetector';
 export * from './EnvDetector';
 export * from './ProcessDetector';
-export * from './BrowserDetectorSync';
-export * from './EnvDetectorSync';
-export * from './ProcessDetectorSync';

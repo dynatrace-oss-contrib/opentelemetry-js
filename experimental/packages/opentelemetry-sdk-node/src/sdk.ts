@@ -27,10 +27,8 @@ import {
 } from '@opentelemetry/instrumentation';
 import {
   Detector,
-  DetectorSync,
-  detectResourcesSync,
+  detectResources,
   envDetector,
-  IResource,
   processDetector,
   Resource,
   ResourceDetectionConfig,
@@ -73,8 +71,8 @@ export class NodeSDK {
   private _meterProviderConfig?: MeterProviderConfig;
   private _instrumentations: InstrumentationOption[];
 
-  private _resource: IResource;
-  private _resourceDetectors: Array<Detector | DetectorSync>;
+  private _resource: Resource;
+  private _resourceDetectors: Detector[];
 
   private _autoDetectResources: boolean;
 
@@ -202,7 +200,7 @@ export class NodeSDK {
   }
 
   /** Detect resource attributes */
-  public detectResources(): void {
+  public async detectResources(): Promise<void> {
     if (this._disabled) {
       return;
     }
@@ -211,18 +209,18 @@ export class NodeSDK {
       detectors: this._resourceDetectors,
     };
 
-    this.addResource(detectResourcesSync(internalConfig));
+    this.addResource(await detectResources(internalConfig));
   }
 
   /** Manually add a resource */
-  public addResource(resource: IResource): void {
+  public addResource(resource: Resource): void {
     this._resource = this._resource.merge(resource);
   }
 
   /**
    * Once the SDK has been configured, call this method to construct SDK components and register them with the OpenTelemetry API.
    */
-  public start(): void {
+  public async start(): Promise<void> {
     if (this._disabled) {
       return;
     }
@@ -232,7 +230,7 @@ export class NodeSDK {
     });
 
     if (this._autoDetectResources) {
-      this.detectResources();
+      await this.detectResources();
     }
 
     this._resource =

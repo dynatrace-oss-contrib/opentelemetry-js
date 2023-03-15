@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
+import { Resource } from './Resource';
 import { ResourceDetectionConfig } from './config';
 import { SpanAttributes } from '@opentelemetry/api';
-import { IResource } from './IResource';
 
 /**
  * Interface for Resource attributes.
@@ -26,16 +26,9 @@ import { IResource } from './IResource';
 export type ResourceAttributes = SpanAttributes;
 
 /**
- * @deprecated please use {@link DetectorSync}
+ * Interface for a Resource Detector. In order to detect resources in parallel
+ * a detector returns a Promise containing a Resource.
  */
 export interface Detector {
-  detect(config?: ResourceDetectionConfig): Promise<IResource>;
-}
-
-/**
- * Interface for a synchronous Resource Detector. In order to detect attributes asynchronously, a detector
- * can pass a Promise as the second parameter to the Resource constructor.
- */
-export interface DetectorSync {
-  detect(config?: ResourceDetectionConfig): IResource;
+  detect(config?: ResourceDetectionConfig): Promise<Resource>;
 }

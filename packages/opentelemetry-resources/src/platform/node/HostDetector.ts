@@ -14,18 +14,38 @@
  * limitations under the License.
  */
 
-import { Detector } from '../../types';
+import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
+import { Resource } from '../../Resource';
+import { Detector, ResourceAttributes } from '../../types';
 import { ResourceDetectionConfig } from '../../config';
-import { IResource } from '../../IResource';
-import { hostDetectorSync } from './HostDetectorSync';
+import { arch, hostname } from 'os';
 
 /**
  * HostDetector detects the resources related to the host current process is
  * running on. Currently only non-cloud-based attributes are included.
  */
 class HostDetector implements Detector {
-  detect(_config?: ResourceDetectionConfig): Promise<IResource> {
-    return Promise.resolve(hostDetectorSync.detect(_config));
+  async detect(_config?: ResourceDetectionConfig): Promise<Resource> {
+    const attributes: ResourceAttributes = {
+      [SemanticResourceAttributes.HOST_NAME]: hostname(),
+      [SemanticResourceAttributes.HOST_ARCH]: this._normalizeArch(arch()),
+    };
+    return new Resource(attributes);
+  }
+
+  private _normalizeArch(nodeArchString: string): string {
+    // Maps from https://nodejs.org/api/os.html#osarch to arch values in spec:
+    // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/resource/semantic_conventions/host.md
+    switch (nodeArchString) {
+      case 'arm':
+        return 'arm32';
+      case 'ppc':
+        return 'ppc32';
+      case 'x64':
+        return 'amd64';
+      default:
+        return nodeArchString;
+    }
   }
 }
 
