@@ -23,8 +23,6 @@ import {
   OTLPGRPCExporterConfigNode,
   OTLPGRPCExporterNodeBase,
   ServiceClientType,
-  validateAndNormalizeUrl,
-  DEFAULT_COLLECTOR_URL,
 } from '@opentelemetry/otlp-grpc-exporter-base';
 import { baggageUtils, getEnv } from '@opentelemetry/core';
 import { Metadata } from '@grpc/grpc-js';
@@ -65,24 +63,13 @@ class OTLPMetricExporterProxy extends OTLPGRPCExporterNodeBase<
     return ServiceClientType.METRICS;
   }
 
-  getDefaultUrl(config: OTLPGRPCExporterConfigNode): string {
-    return validateAndNormalizeUrl(this.getUrlFromConfig(config));
+  // TODO: unnecessary
+  getDefaultUrl(_config: OTLPGRPCExporterConfigNode): string {
+    return '';
   }
 
   convert(metrics: ResourceMetrics[]): IExportMetricsServiceRequest {
     return createExportMetricsServiceRequest(metrics);
-  }
-
-  getUrlFromConfig(config: OTLPGRPCExporterConfigNode): string {
-    if (typeof config.url === 'string') {
-      return config.url;
-    }
-
-    return (
-      getEnv().OTEL_EXPORTER_OTLP_METRICS_ENDPOINT ||
-      getEnv().OTEL_EXPORTER_OTLP_ENDPOINT ||
-      DEFAULT_COLLECTOR_URL
-    );
   }
 }
 

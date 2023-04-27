@@ -21,8 +21,6 @@ import {
   OTLPGRPCExporterConfigNode,
   OTLPGRPCExporterNodeBase,
   ServiceClientType,
-  validateAndNormalizeUrl,
-  DEFAULT_COLLECTOR_URL,
 } from '@opentelemetry/otlp-grpc-exporter-base';
 import {
   createExportLogsServiceRequest,
@@ -51,8 +49,9 @@ export class OTLPLogExporter
     return createExportLogsServiceRequest(logRecords);
   }
 
-  getDefaultUrl(config: OTLPGRPCExporterConfigNode) {
-    return validateAndNormalizeUrl(this.getUrlFromConfig(config));
+  // TODO: unnecessary
+  getDefaultUrl(_config: OTLPGRPCExporterConfigNode) {
+    return '';
   }
 
   getServiceClientType() {
@@ -61,17 +60,5 @@ export class OTLPLogExporter
 
   getServiceProtoPath(): string {
     return 'opentelemetry/proto/collector/logs/v1/logs_service.proto';
-  }
-
-  getUrlFromConfig(config: OTLPGRPCExporterConfigNode): string {
-    if (typeof config.url === 'string') {
-      return config.url;
-    }
-
-    return (
-      getEnv().OTEL_EXPORTER_OTLP_LOGS_ENDPOINT ||
-      getEnv().OTEL_EXPORTER_OTLP_ENDPOINT ||
-      DEFAULT_COLLECTOR_URL
-    );
   }
 }

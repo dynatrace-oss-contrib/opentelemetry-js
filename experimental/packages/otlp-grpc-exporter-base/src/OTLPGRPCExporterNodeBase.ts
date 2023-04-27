@@ -14,24 +14,18 @@
  * limitations under the License.
  */
 
-import { diag } from '@opentelemetry/api';
-import { Metadata } from '@grpc/grpc-js';
-import {
-  OTLPGRPCExporterConfigNode,
-  GRPCQueueItem,
-  ServiceClientType,
-  ServiceClient,
-} from './types';
-import { getEnv, baggageUtils } from '@opentelemetry/core';
+import {diag} from '@opentelemetry/api';
+import {Metadata} from '@grpc/grpc-js';
+import {GRPCQueueItem, OTLPGRPCExporterConfigNode, ServiceClient, ServiceClientType,} from './types';
+import {baggageUtils, getEnv} from '@opentelemetry/core';
 import {
   createConfigurationProvider,
   IGrpcExporterConfigurationProvider,
+  logsHandler,
+  metricsHandler,
   traceHandler,
 } from './util';
-import {
-  OTLPExporterBase,
-  OTLPExporterError,
-} from '@opentelemetry/otlp-exporter-base';
+import {OTLPExporterBase, OTLPExporterError,} from '@opentelemetry/otlp-exporter-base';
 
 /**
  * OTLP Exporter abstract base class
@@ -52,7 +46,15 @@ export abstract class OTLPGRPCExporterNodeBase<
 
   constructor(config: OTLPGRPCExporterConfigNode = {}) {
     super(config);
-    this._configProvider = createConfigurationProvider(traceHandler);
+    if (this.getServiceClientType() === ServiceClientType.SPANS) {
+      this._configProvider = createConfigurationProvider(traceHandler);
+    }
+    if (this.getServiceClientType() === ServiceClientType.METRICS) {
+      this._configProvider = createConfigurationProvider(metricsHandler);
+    } else {
+      this._configProvider = createConfigurationProvider(logsHandler);
+    }
+
     if (config.headers) {
       diag.warn('Headers cannot be set when using grpc');
     }
@@ -124,5 +126,4 @@ export abstract class OTLPGRPCExporterNodeBase<
 
   abstract getServiceProtoPath(): string;
   abstract getServiceClientType(): ServiceClientType;
-  abstract getUrlFromConfig(config: OTLPGRPCExporterConfigNode): string;
 }

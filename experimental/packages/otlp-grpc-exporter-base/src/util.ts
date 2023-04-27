@@ -46,6 +46,7 @@ export interface IGrpcExporterConfigurationProvider {
   getCompression(
     config?: OTLPGRPCExporterConfigNode
   ): CompressionAlgorithm | undefined;
+  getEndpoint(config?: OTLPGRPCExporterConfigNode): string | undefined;
 }
 
 type GrpcExporterEnvHandler = {
@@ -54,6 +55,7 @@ type GrpcExporterEnvHandler = {
   insecure: () => string | undefined;
   rootCertificate: () => string | undefined;
   clientCertificate: () => string | undefined;
+  endpoint: () => string | undefined;
 };
 
 const baseHandler: GrpcExporterEnvHandler = {
@@ -62,6 +64,7 @@ const baseHandler: GrpcExporterEnvHandler = {
   insecure: () => getEnv().OTEL_EXPORTER_OTLP_INSECURE,
   rootCertificate: () => getEnv().OTEL_EXPORTER_OTLP_CERTIFICATE,
   clientCertificate: () => getEnv().OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE,
+  endpoint: () => getEnv().OTEL_EXPORTER_OTLP_ENDPOINT,
 };
 
 export const traceHandler: GrpcExporterEnvHandler = {
@@ -71,6 +74,26 @@ export const traceHandler: GrpcExporterEnvHandler = {
   rootCertificate: () => getEnv().OTEL_EXPORTER_OTLP_TRACES_CERTIFICATE,
   clientCertificate: () =>
     getEnv().OTEL_EXPORTER_OTLP_TRACES_CLIENT_CERTIFICATE,
+  endpoint: () => getEnv().OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
+};
+
+export const metricsHandler: GrpcExporterEnvHandler = {
+  clientKey: () => getEnv().OTEL_EXPORTER_OTLP_METRICS_CLIENT_KEY,
+  compression: () => getEnv().OTEL_EXPORTER_OTLP_METRICS_COMPRESSION,
+  insecure: () => getEnv().OTEL_EXPORTER_OTLP_METRICS_INSECURE,
+  rootCertificate: () => getEnv().OTEL_EXPORTER_OTLP_METRICS_CERTIFICATE,
+  clientCertificate: () =>
+    getEnv().OTEL_EXPORTER_OTLP_METRICS_CLIENT_CERTIFICATE,
+  endpoint: () => getEnv().OTEL_EXPORTER_OTLP_METRICS_ENDPOINT,
+};
+
+export const logsHandler: GrpcExporterEnvHandler = {
+  clientKey: () => getEnv().OTEL_EXPORTER_OTLP_LOGS_CLIENT_KEY,
+  compression: () => getEnv().OTEL_EXPORTER_OTLP_LOGS_COMPRESSION,
+  insecure: () => getEnv().OTEL_EXPORTER_OTLP_LOGS_INSECURE,
+  rootCertificate: () => getEnv().OTEL_EXPORTER_OTLP_LOGS_CERTIFICATE,
+  clientCertificate: () => getEnv().OTEL_EXPORTER_OTLP_LOGS_CLIENT_CERTIFICATE,
+  endpoint: () => getEnv().OTEL_EXPORTER_OTLP_LOGS_ENDPOINT,
 };
 
 export function createConfigurationProvider(
@@ -165,6 +188,17 @@ class EnvironmentGrpcExporterConfigurationProvider
       return undefined;
     }
   }
+
+  getEndpoint(config?: OTLPGRPCExporterConfigNode): string | undefined {
+    if (typeof config?.url === 'string') {
+      return config.url;
+    }
+
+    return (
+      this._baseEnvVarHandler.endpoint() ||
+      this._signalSpecificEnvVarHandler.endpoint()
+    );
+  }
 }
 
 export function onInit<ExportItem, ServiceRequest>(
@@ -173,39 +207,39 @@ export function onInit<ExportItem, ServiceRequest>(
   configProvider: IGrpcExporterConfigurationProvider
 ): void {
   collector.grpcQueue = [];
+  const endpoint = configProvider.getEndpoint(config) || DEFAULT_COLLECTOR_URL;
 
   const credentials: grpc.ChannelCredentials = configureSecurity(
     config.credentials,
-    collector.getUrlFromConfig(config),
+    endpoint,
     configProvider
   );
 
+  const collectorUrl = validateAndNormalizeUrl(endpoint);
+  const compression = toGrpcCompression(
+    configProvider.getCompression(config)
+  ).valueOf();
+
   try {
     if (collector.getServiceClientType() === ServiceClientType.SPANS) {
-      const client = new TraceExportServiceClient(collector.url, credentials, {
-        'grpc.default_compression_algorithm': toGrpcCompression(
-          configProvider.getCompression(config)
-        ).valueOf(),
+      const client = new TraceExportServiceClient(collectorUrl, credentials, {
+        'grpc.default_compression_algorithm': compression,
       });
 
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       collector.serviceClient = client;
     } else if (collector.getServiceClientType() === ServiceClientType.METRICS) {
-      const client = new MetricExportServiceClient(collector.url, credentials, {
-        'grpc.default_compression_algorithm': toGrpcCompression(
-          configProvider.getCompression(config)
-        ).valueOf(),
+      const client = new MetricExportServiceClient(collectorUrl, credentials, {
+        'grpc.default_compression_algorithm': compression,
       });
 
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       collector.serviceClient = client;
     } else if (collector.getServiceClientType() === ServiceClientType.LOGS) {
-      const client = new LogsExportServiceClient(collector.url, credentials, {
-        'grpc.default_compression_algorithm': toGrpcCompression(
-          configProvider.getCompression(config)
-        ).valueOf(),
+      const client = new LogsExportServiceClient(collectorUrl, credentials, {
+        'grpc.default_compression_algorithm': compression,
       });
 
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
