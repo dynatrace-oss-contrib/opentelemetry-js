@@ -27,9 +27,9 @@ import {
   ServiceClientType,
 } from './types';
 import {
+  CompressionAlgorithm,
   ExportServiceError,
   OTLPExporterError,
-  CompressionAlgorithm,
 } from '@opentelemetry/otlp-exporter-base';
 
 import { MetricExportServiceClient } from './MetricsExportServiceClient';
@@ -38,15 +38,102 @@ import { LogsExportServiceClient } from './LogsExportServiceClient';
 
 export const DEFAULT_COLLECTOR_URL = 'http://localhost:4317';
 
+export interface IGrpcExporterConfigurationProvider {
+  getInsecure(): boolean;
+  getRootCertificate(): Buffer | undefined;
+  getClientCertificate(): Buffer | undefined;
+  getClientKey(): Buffer | undefined;
+  getCompression(): CompressionAlgorithm;
+}
+
+export class EnvironmentGrpcTraceExporterConfigurationProvider
+  implements IGrpcExporterConfigurationProvider
+{
+  getInsecure() {
+    const definedInsecure =
+      getEnv().OTEL_EXPORTER_OTLP_TRACES_INSECURE ||
+      getEnv().OTEL_EXPORTER_OTLP_INSECURE;
+
+    if (definedInsecure) {
+      return definedInsecure.toLowerCase() === 'true';
+    } else {
+      return false;
+    }
+  }
+
+  getClientCertificate(): Buffer | undefined {
+    const clientChain =
+      getEnv().OTEL_EXPORTER_OTLP_TRACES_CLIENT_CERTIFICATE ||
+      getEnv().OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE;
+
+    if (clientChain) {
+      try {
+        return fs.readFileSync(path.resolve(process.cwd(), clientChain));
+      } catch {
+        diag.warn('Failed to read client certificate chain file');
+        return undefined;
+      }
+    } else {
+      return undefined;
+    }
+  }
+
+  getCompression(): CompressionAlgorithm {
+    const definedCompression =
+      getEnv().OTEL_EXPORTER_OTLP_TRACES_COMPRESSION ||
+      getEnv().OTEL_EXPORTER_OTLP_COMPRESSION;
+
+    return definedCompression === 'gzip'
+      ? CompressionAlgorithm.GZIP
+      : CompressionAlgorithm.NONE;
+  }
+
+  getRootCertificate(): Buffer | undefined {
+    const rootCertificate =
+      getEnv().OTEL_EXPORTER_OTLP_TRACES_CERTIFICATE ||
+      getEnv().OTEL_EXPORTER_OTLP_CERTIFICATE;
+
+    if (rootCertificate) {
+      try {
+        return fs.readFileSync(path.resolve(process.cwd(), rootCertificate));
+      } catch {
+        diag.warn('Failed to read root certificate file');
+        return undefined;
+      }
+    } else {
+      return undefined;
+    }
+  }
+
+  getClientKey(): Buffer | undefined {
+    const clientKey =
+      getEnv().OTEL_EXPORTER_OTLP_TRACES_CLIENT_KEY ||
+      getEnv().OTEL_EXPORTER_OTLP_CLIENT_KEY;
+
+    if (clientKey) {
+      try {
+        return fs.readFileSync(path.resolve(process.cwd(), clientKey));
+      } catch {
+        diag.warn('Failed to read client certificate private key file');
+        return undefined;
+      }
+    } else {
+      return undefined;
+    }
+  }
+}
+
 export function onInit<ExportItem, ServiceRequest>(
   collector: OTLPGRPCExporterNodeBase<ExportItem, ServiceRequest>,
-  config: OTLPGRPCExporterConfigNode
+  config: OTLPGRPCExporterConfigNode,
+  configProvider: IGrpcExporterConfigurationProvider
 ): void {
   collector.grpcQueue = [];
 
   const credentials: grpc.ChannelCredentials = configureSecurity(
     config.credentials,
-    collector.getUrlFromConfig(config)
+    collector.getUrlFromConfig(config),
+    configProvider
   );
 
   try {
@@ -138,7 +225,8 @@ export function validateAndNormalizeUrl(url: string): string {
 
 export function configureSecurity(
   credentials: grpc.ChannelCredentials | undefined,
-  endpoint: string
+  endpoint: string,
+  configProvider: IGrpcExporterConfigurationProvider
 ): grpc.ChannelCredentials {
   let insecure: boolean;
 
@@ -152,89 +240,28 @@ export function configureSecurity(
   ) {
     insecure = true;
   } else {
-    insecure = getSecurityFromEnv();
+    insecure = configProvider.getInsecure();
   }
 
   if (insecure) {
     return grpc.credentials.createInsecure();
   } else {
-    return useSecureConnection();
+    return useSecureConnection(configProvider);
   }
 }
 
-function getSecurityFromEnv(): boolean {
-  const definedInsecure =
-    getEnv().OTEL_EXPORTER_OTLP_TRACES_INSECURE ||
-    getEnv().OTEL_EXPORTER_OTLP_INSECURE;
-
-  if (definedInsecure) {
-    return definedInsecure.toLowerCase() === 'true';
-  } else {
-    return false;
-  }
-}
-
-export function useSecureConnection(): grpc.ChannelCredentials {
-  const rootCertPath = retrieveRootCert();
-  const privateKeyPath = retrievePrivateKey();
-  const certChainPath = retrieveCertChain();
+export function useSecureConnection(
+  configProvider: IGrpcExporterConfigurationProvider
+): grpc.ChannelCredentials {
+  const rootCertPath = configProvider.getRootCertificate();
+  const privateKeyPath = configProvider.getClientKey();
+  const certChainPath = configProvider.getClientCertificate();
 
   return grpc.credentials.createSsl(
     rootCertPath,
     privateKeyPath,
     certChainPath
   );
-}
-
-function retrieveRootCert(): Buffer | undefined {
-  const rootCertificate =
-    getEnv().OTEL_EXPORTER_OTLP_TRACES_CERTIFICATE ||
-    getEnv().OTEL_EXPORTER_OTLP_CERTIFICATE;
-
-  if (rootCertificate) {
-    try {
-      return fs.readFileSync(path.resolve(process.cwd(), rootCertificate));
-    } catch {
-      diag.warn('Failed to read root certificate file');
-      return undefined;
-    }
-  } else {
-    return undefined;
-  }
-}
-
-function retrievePrivateKey(): Buffer | undefined {
-  const clientKey =
-    getEnv().OTEL_EXPORTER_OTLP_TRACES_CLIENT_KEY ||
-    getEnv().OTEL_EXPORTER_OTLP_CLIENT_KEY;
-
-  if (clientKey) {
-    try {
-      return fs.readFileSync(path.resolve(process.cwd(), clientKey));
-    } catch {
-      diag.warn('Failed to read client certificate private key file');
-      return undefined;
-    }
-  } else {
-    return undefined;
-  }
-}
-
-function retrieveCertChain(): Buffer | undefined {
-  const clientChain =
-    getEnv().OTEL_EXPORTER_OTLP_TRACES_CLIENT_CERTIFICATE ||
-    getEnv().OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE;
-
-  if (clientChain) {
-    try {
-      return fs.readFileSync(path.resolve(process.cwd(), clientChain));
-    } catch {
-      diag.warn('Failed to read client certificate chain file');
-      return undefined;
-    }
-  } else {
-    return undefined;
-  }
 }
 
 function toGrpcCompression(
@@ -256,14 +283,13 @@ export enum GrpcCompressionAlgorithm {
 }
 
 export function configureCompression(
-  compression: CompressionAlgorithm | undefined
+  compression: CompressionAlgorithm | undefined,
+  configProvider: EnvironmentGrpcTraceExporterConfigurationProvider
 ): GrpcCompressionAlgorithm {
   if (compression) {
     return toGrpcCompression(compression);
   } else {
-    const definedCompression =
-      getEnv().OTEL_EXPORTER_OTLP_TRACES_COMPRESSION ||
-      getEnv().OTEL_EXPORTER_OTLP_COMPRESSION;
+    const definedCompression = configProvider.getCompression();
 
     return definedCompression === 'gzip'
       ? GrpcCompressionAlgorithm.GZIP

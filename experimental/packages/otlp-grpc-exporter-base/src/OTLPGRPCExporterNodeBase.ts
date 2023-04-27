@@ -20,10 +20,15 @@ import {
   OTLPGRPCExporterConfigNode,
   GRPCQueueItem,
   ServiceClientType,
+  ServiceClient,
 } from './types';
-import { ServiceClient } from './types';
 import { getEnv, baggageUtils } from '@opentelemetry/core';
-import { configureCompression, GrpcCompressionAlgorithm } from './util';
+import {
+  configureCompression,
+  EnvironmentGrpcTraceExporterConfigurationProvider,
+  GrpcCompressionAlgorithm,
+  IGrpcExporterConfigurationProvider,
+} from './util';
 import {
   OTLPExporterBase,
   OTLPExporterError,
@@ -45,9 +50,12 @@ export abstract class OTLPGRPCExporterNodeBase<
   serviceClient?: ServiceClient = undefined;
   private _send!: Function;
   compression: GrpcCompressionAlgorithm;
+  private _configProvider: IGrpcExporterConfigurationProvider;
 
   constructor(config: OTLPGRPCExporterConfigNode = {}) {
     super(config);
+    this._configProvider =
+      new EnvironmentGrpcTraceExporterConfigurationProvider();
     if (config.headers) {
       diag.warn('Headers cannot be set when using grpc');
     }
@@ -58,7 +66,10 @@ export abstract class OTLPGRPCExporterNodeBase<
     for (const [k, v] of Object.entries(headers)) {
       this.metadata.set(k, v);
     }
-    this.compression = configureCompression(config.compression);
+    this.compression = configureCompression(
+      config.compression,
+      this._configProvider
+    );
   }
 
   private _sendPromise(
@@ -84,7 +95,7 @@ export abstract class OTLPGRPCExporterNodeBase<
     setImmediate(() => {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { onInit } = require('./util');
-      onInit(this, config);
+      onInit(this, config, this._configProvider);
     });
   }
 
