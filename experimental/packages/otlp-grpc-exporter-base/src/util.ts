@@ -48,13 +48,49 @@ export interface IGrpcExporterConfigurationProvider {
   ): CompressionAlgorithm | undefined;
 }
 
-export class EnvironmentGrpcTraceExporterConfigurationProvider
+type GrpcExporterEnvHandler = {
+  clientKey: () => string | undefined;
+  compression: () => string | undefined;
+  insecure: () => string | undefined;
+  rootCertificate: () => string | undefined;
+  clientCertificate: () => string | undefined;
+};
+
+const baseHandler: GrpcExporterEnvHandler = {
+  clientKey: () => getEnv().OTEL_EXPORTER_OTLP_CLIENT_KEY,
+  compression: () => getEnv().OTEL_EXPORTER_OTLP_COMPRESSION,
+  insecure: () => getEnv().OTEL_EXPORTER_OTLP_INSECURE,
+  rootCertificate: () => getEnv().OTEL_EXPORTER_OTLP_CERTIFICATE,
+  clientCertificate: () => getEnv().OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE,
+};
+
+export const traceHandler: GrpcExporterEnvHandler = {
+  clientKey: () => getEnv().OTEL_EXPORTER_OTLP_TRACES_CLIENT_KEY,
+  compression: () => getEnv().OTEL_EXPORTER_OTLP_TRACES_COMPRESSION,
+  insecure: () => getEnv().OTEL_EXPORTER_OTLP_TRACES_INSECURE,
+  rootCertificate: () => getEnv().OTEL_EXPORTER_OTLP_TRACES_CERTIFICATE,
+  clientCertificate: () =>
+    getEnv().OTEL_EXPORTER_OTLP_TRACES_CLIENT_CERTIFICATE,
+};
+
+export function createConfigurationProvider(
+  envVarHandler: GrpcExporterEnvHandler
+) {
+  return new EnvironmentGrpcExporterConfigurationProvider(envVarHandler);
+}
+
+class EnvironmentGrpcExporterConfigurationProvider
   implements IGrpcExporterConfigurationProvider
 {
+  private _baseEnvVarHandler: GrpcExporterEnvHandler;
+  constructor(private _signalSpecificEnvVarHandler: GrpcExporterEnvHandler) {
+    this._baseEnvVarHandler = baseHandler;
+  }
+
   getInsecure() {
     const definedInsecure =
-      getEnv().OTEL_EXPORTER_OTLP_TRACES_INSECURE ||
-      getEnv().OTEL_EXPORTER_OTLP_INSECURE;
+      this._baseEnvVarHandler.insecure() ||
+      this._signalSpecificEnvVarHandler.insecure();
 
     if (definedInsecure) {
       return definedInsecure.toLowerCase() === 'true';
@@ -65,8 +101,8 @@ export class EnvironmentGrpcTraceExporterConfigurationProvider
 
   getClientCertificate(): Buffer | undefined {
     const clientChain =
-      getEnv().OTEL_EXPORTER_OTLP_TRACES_CLIENT_CERTIFICATE ||
-      getEnv().OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE;
+      this._baseEnvVarHandler.clientCertificate() ||
+      this._signalSpecificEnvVarHandler.clientCertificate();
 
     if (clientChain) {
       try {
@@ -87,8 +123,8 @@ export class EnvironmentGrpcTraceExporterConfigurationProvider
       return config?.compression;
     } else {
       const definedCompression =
-        getEnv().OTEL_EXPORTER_OTLP_TRACES_COMPRESSION ||
-        getEnv().OTEL_EXPORTER_OTLP_COMPRESSION;
+        this._baseEnvVarHandler.compression() ||
+        this._signalSpecificEnvVarHandler.compression();
 
       return definedCompression === 'gzip'
         ? CompressionAlgorithm.GZIP
@@ -98,8 +134,8 @@ export class EnvironmentGrpcTraceExporterConfigurationProvider
 
   getRootCertificate(): Buffer | undefined {
     const rootCertificate =
-      getEnv().OTEL_EXPORTER_OTLP_TRACES_CERTIFICATE ||
-      getEnv().OTEL_EXPORTER_OTLP_CERTIFICATE;
+      this._baseEnvVarHandler.rootCertificate() ||
+      this._signalSpecificEnvVarHandler.rootCertificate();
 
     if (rootCertificate) {
       try {
@@ -115,8 +151,8 @@ export class EnvironmentGrpcTraceExporterConfigurationProvider
 
   getClientKey(): Buffer | undefined {
     const clientKey =
-      getEnv().OTEL_EXPORTER_OTLP_TRACES_CLIENT_KEY ||
-      getEnv().OTEL_EXPORTER_OTLP_CLIENT_KEY;
+      this._baseEnvVarHandler.clientKey() ||
+      this._signalSpecificEnvVarHandler.clientKey();
 
     if (clientKey) {
       try {

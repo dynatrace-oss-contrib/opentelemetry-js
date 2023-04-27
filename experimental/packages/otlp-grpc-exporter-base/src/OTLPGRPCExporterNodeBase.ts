@@ -24,8 +24,9 @@ import {
 } from './types';
 import { getEnv, baggageUtils } from '@opentelemetry/core';
 import {
-  EnvironmentGrpcTraceExporterConfigurationProvider,
+  createConfigurationProvider,
   IGrpcExporterConfigurationProvider,
+  traceHandler,
 } from './util';
 import {
   OTLPExporterBase,
@@ -51,8 +52,7 @@ export abstract class OTLPGRPCExporterNodeBase<
 
   constructor(config: OTLPGRPCExporterConfigNode = {}) {
     super(config);
-    this._configProvider =
-      new EnvironmentGrpcTraceExporterConfigurationProvider();
+    this._configProvider = createConfigurationProvider(traceHandler);
     if (config.headers) {
       diag.warn('Headers cannot be set when using grpc');
     }

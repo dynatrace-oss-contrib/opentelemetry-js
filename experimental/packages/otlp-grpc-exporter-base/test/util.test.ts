@@ -24,7 +24,8 @@ import {
   configureSecurity,
   useSecureConnection,
   DEFAULT_COLLECTOR_URL,
-  EnvironmentGrpcTraceExporterConfigurationProvider,
+  createConfigurationProvider,
+  traceHandler,
 } from '../src/util';
 import { CompressionAlgorithm } from '@opentelemetry/otlp-exporter-base';
 
@@ -90,7 +91,7 @@ describe('validateAndNormalizeUrl()', () => {
 
 describe('utils - configureSecurity', () => {
   const envSource = process.env;
-  const envProvider = new EnvironmentGrpcTraceExporterConfigurationProvider();
+  const envProvider = createConfigurationProvider(traceHandler);
   it('should return insecure channel when using all defaults', () => {
     const credentials = configureSecurity(
       undefined,
@@ -169,7 +170,7 @@ describe('utils - configureSecurity', () => {
 
 describe('useSecureConnection', () => {
   const envSource = process.env;
-  const envProvider = new EnvironmentGrpcTraceExporterConfigurationProvider();
+  const envProvider = createConfigurationProvider(traceHandler);
 
   it('should return secure connection using all credentials', () => {
     envSource.OTEL_EXPORTER_OTLP_CERTIFICATE = './test/certs/ca.crt';
@@ -205,9 +206,9 @@ describe('useSecureConnection', () => {
   });
 });
 
-describe('EnvironmentGrpcTraceExporterConfigurationProvider.getCompression()', () => {
+describe('trace configuration provider .getCompression()', () => {
   const envSource = process.env;
-  const envProvider = new EnvironmentGrpcTraceExporterConfigurationProvider();
+  const envProvider = createConfigurationProvider(traceHandler);
   it('should return none for compression', () => {
     const compression = CompressionAlgorithm.NONE;
     assert.strictEqual(
