@@ -33,10 +33,6 @@ class MockCollectorExporter extends OTLPGRPCExporterNodeBase<
     onError: (error: OTLPExporterError) => void;
   }[] = [];
 
-  getDefaultUrl(config: OTLPGRPCExporterConfigNode): string {
-    return '';
-  }
-
   getDefaultServiceName(config: OTLPGRPCExporterConfigNode): string {
     return '';
   }

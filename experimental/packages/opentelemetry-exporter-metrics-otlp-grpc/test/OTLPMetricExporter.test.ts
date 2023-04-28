@@ -269,43 +269,8 @@ const testOTLPMetricExporter = (params: TestParams) =>
     });
   });
 
-describe('OTLPMetricExporter - node (getDefaultUrl)', () => {
-  it('should default to localhost', done => {
-    const collectorExporter = new OTLPMetricExporter();
-    setTimeout(() => {
-      assert.strictEqual(collectorExporter._otlpExporter.url, 'localhost:4317');
-      done();
-    });
-  });
-  it('should keep the URL if included', done => {
-    const url = 'http://foo.bar.com';
-    const collectorExporter = new OTLPMetricExporter({
-      url,
-      temporalityPreference: AggregationTemporality.CUMULATIVE,
-    });
-    setTimeout(() => {
-      assert.strictEqual(collectorExporter._otlpExporter.url, 'foo.bar.com');
-      done();
-    });
-  });
-});
-
 describe('when configuring via environment', () => {
   const envSource = process.env;
-  it('should use url defined in env', () => {
-    envSource.OTEL_EXPORTER_OTLP_ENDPOINT = 'http://foo.bar';
-    const collectorExporter = new OTLPMetricExporter();
-    assert.strictEqual(collectorExporter._otlpExporter.url, 'foo.bar');
-    envSource.OTEL_EXPORTER_OTLP_ENDPOINT = '';
-  });
-  it('should override global exporter url with signal url defined in env', () => {
-    envSource.OTEL_EXPORTER_OTLP_ENDPOINT = 'http://foo.bar';
-    envSource.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT = 'http://foo.metrics';
-    const collectorExporter = new OTLPMetricExporter();
-    assert.strictEqual(collectorExporter._otlpExporter.url, 'foo.metrics');
-    envSource.OTEL_EXPORTER_OTLP_ENDPOINT = '';
-    envSource.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT = '';
-  });
   it('should use headers defined via env', () => {
     envSource.OTEL_EXPORTER_OTLP_HEADERS = 'foo=bar';
     const collectorExporter = new OTLPMetricExporter();

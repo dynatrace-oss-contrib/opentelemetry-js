@@ -230,3 +230,47 @@ describe('trace configuration provider .getCompression()', () => {
     assert.strictEqual(envProvider.getCompression(), CompressionAlgorithm.NONE);
   });
 });
+
+describe('trace configuration provider .getEndpoint()', () => {
+  const envSource = process.env;
+  const envProvider = createConfigurationProvider(traceHandler);
+  it('should default to empty string', () => {
+    assert.strictEqual(
+      validateAndNormalizeUrl(envProvider.getEndpoint()!),
+      'localhost:4317'
+    );
+    assert.strictEqual(
+      validateAndNormalizeUrl(envProvider.getEndpoint({})!),
+      'localhost:4317'
+    );
+  });
+
+  it('should keep the url if included in configuration', () => {
+    assert.strictEqual(
+      validateAndNormalizeUrl(
+        envProvider.getEndpoint({ url: 'http://foo.bar.com' })!
+      ),
+      'foo.bar.com'
+    );
+  });
+
+  it('should use url defined in env', () => {
+    envSource.OTEL_EXPORTER_OTLP_ENDPOINT = 'http://foo.bar';
+    assert.strictEqual(
+      validateAndNormalizeUrl(envProvider.getEndpoint()!),
+      'foo.bar'
+    );
+    envSource.OTEL_EXPORTER_OTLP_ENDPOINT = '';
+  });
+
+  it('should override global exporter url with signal url defined in env', () => {
+    envSource.OTEL_EXPORTER_OTLP_ENDPOINT = 'http://foo.bar';
+    envSource.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT = 'http://foo.traces';
+    assert.strictEqual(
+      validateAndNormalizeUrl(envProvider.getEndpoint()!),
+      'foo.traces'
+    );
+    envSource.OTEL_EXPORTER_OTLP_ENDPOINT = '';
+    envSource.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT = '';
+  });
+});

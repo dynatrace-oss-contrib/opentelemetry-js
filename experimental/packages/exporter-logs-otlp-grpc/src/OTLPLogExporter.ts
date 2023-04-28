@@ -49,11 +49,6 @@ export class OTLPLogExporter
     return createExportLogsServiceRequest(logRecords);
   }
 
-  // TODO: unnecessary
-  getDefaultUrl(_config: OTLPGRPCExporterConfigNode) {
-    return '';
-  }
-
   getServiceClientType() {
     return ServiceClientType.LOGS;
   }

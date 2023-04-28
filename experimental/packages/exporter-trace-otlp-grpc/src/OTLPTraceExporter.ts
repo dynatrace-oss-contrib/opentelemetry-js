@@ -57,11 +57,6 @@ export class OTLPTraceExporter
     return createExportTraceServiceRequest(spans);
   }
 
-  // TODO: unnecessary
-  getDefaultUrl(_config: OTLPGRPCExporterConfigNode) {
-    return '';
-  }
-
   getServiceClientType() {
     return ServiceClientType.SPANS;
   }

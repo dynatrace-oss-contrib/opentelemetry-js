@@ -56,6 +56,7 @@ type GrpcExporterEnvHandler = {
   rootCertificate: () => string | undefined;
   clientCertificate: () => string | undefined;
   endpoint: () => string | undefined;
+  headers: () => string | undefined;
 };
 
 const baseHandler: GrpcExporterEnvHandler = {
@@ -65,6 +66,7 @@ const baseHandler: GrpcExporterEnvHandler = {
   rootCertificate: () => getEnv().OTEL_EXPORTER_OTLP_CERTIFICATE,
   clientCertificate: () => getEnv().OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE,
   endpoint: () => getEnv().OTEL_EXPORTER_OTLP_ENDPOINT,
+  headers: () => getEnv().OTEL_EXPORTER_OTLP_HEADERS,
 };
 
 export const traceHandler: GrpcExporterEnvHandler = {
@@ -75,6 +77,7 @@ export const traceHandler: GrpcExporterEnvHandler = {
   clientCertificate: () =>
     getEnv().OTEL_EXPORTER_OTLP_TRACES_CLIENT_CERTIFICATE,
   endpoint: () => getEnv().OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
+  headers: () => getEnv().OTEL_EXPORTER_OTLP_TRACES_HEADERS,
 };
 
 export const metricsHandler: GrpcExporterEnvHandler = {
@@ -85,6 +88,7 @@ export const metricsHandler: GrpcExporterEnvHandler = {
   clientCertificate: () =>
     getEnv().OTEL_EXPORTER_OTLP_METRICS_CLIENT_CERTIFICATE,
   endpoint: () => getEnv().OTEL_EXPORTER_OTLP_METRICS_ENDPOINT,
+  headers: () => getEnv().OTEL_EXPORTER_OTLP_METRICS_HEADERS,
 };
 
 export const logsHandler: GrpcExporterEnvHandler = {
@@ -94,12 +98,54 @@ export const logsHandler: GrpcExporterEnvHandler = {
   rootCertificate: () => getEnv().OTEL_EXPORTER_OTLP_LOGS_CERTIFICATE,
   clientCertificate: () => getEnv().OTEL_EXPORTER_OTLP_LOGS_CLIENT_CERTIFICATE,
   endpoint: () => getEnv().OTEL_EXPORTER_OTLP_LOGS_ENDPOINT,
+  headers: () => getEnv().OTEL_EXPORTER_OTLP_LOGS_HEADERS,
 };
+
+export function validateConfig(
+  config: OTLPGRPCExporterConfigNode,
+  configProvider: IGrpcExporterConfigurationProvider
+) {
+  validateAndNormalizeUrl(configProvider.getEndpoint(config)!);
+}
 
 export function createConfigurationProvider(
   envVarHandler: GrpcExporterEnvHandler
 ) {
-  return new EnvironmentGrpcExporterConfigurationProvider(envVarHandler);
+  return new DefaultGrpcExporterConfigurationProvider(
+    new EnvironmentGrpcExporterConfigurationProvider(envVarHandler)
+  );
+}
+
+class DefaultGrpcExporterConfigurationProvider
+  implements IGrpcExporterConfigurationProvider
+{
+  constructor(private _baseProvider: IGrpcExporterConfigurationProvider) {}
+
+  getClientCertificate(): Buffer | undefined {
+    return this._baseProvider.getClientCertificate();
+  }
+
+  getClientKey(): Buffer | undefined {
+    return this._baseProvider.getClientKey();
+  }
+
+  getCompression(
+    config?: OTLPGRPCExporterConfigNode
+  ): CompressionAlgorithm | undefined {
+    return this._baseProvider.getCompression(config);
+  }
+
+  getEndpoint(config?: OTLPGRPCExporterConfigNode): string | undefined {
+    return this._baseProvider.getEndpoint(config) || DEFAULT_COLLECTOR_URL;
+  }
+
+  getInsecure(): boolean {
+    return this._baseProvider.getInsecure();
+  }
+
+  getRootCertificate(): Buffer | undefined {
+    return this._baseProvider.getRootCertificate();
+  }
 }
 
 class EnvironmentGrpcExporterConfigurationProvider
@@ -112,8 +158,8 @@ class EnvironmentGrpcExporterConfigurationProvider
 
   getInsecure() {
     const definedInsecure =
-      this._baseEnvVarHandler.insecure() ||
-      this._signalSpecificEnvVarHandler.insecure();
+      this._signalSpecificEnvVarHandler.insecure() ||
+      this._baseEnvVarHandler.insecure();
 
     if (definedInsecure) {
       return definedInsecure.toLowerCase() === 'true';
@@ -124,8 +170,8 @@ class EnvironmentGrpcExporterConfigurationProvider
 
   getClientCertificate(): Buffer | undefined {
     const clientChain =
-      this._baseEnvVarHandler.clientCertificate() ||
-      this._signalSpecificEnvVarHandler.clientCertificate();
+      this._signalSpecificEnvVarHandler.clientCertificate() ||
+      this._baseEnvVarHandler.clientCertificate();
 
     if (clientChain) {
       try {
@@ -146,8 +192,8 @@ class EnvironmentGrpcExporterConfigurationProvider
       return config?.compression;
     } else {
       const definedCompression =
-        this._baseEnvVarHandler.compression() ||
-        this._signalSpecificEnvVarHandler.compression();
+        this._signalSpecificEnvVarHandler.compression() ||
+        this._baseEnvVarHandler.compression();
 
       return definedCompression === 'gzip'
         ? CompressionAlgorithm.GZIP
@@ -157,8 +203,8 @@ class EnvironmentGrpcExporterConfigurationProvider
 
   getRootCertificate(): Buffer | undefined {
     const rootCertificate =
-      this._baseEnvVarHandler.rootCertificate() ||
-      this._signalSpecificEnvVarHandler.rootCertificate();
+      this._signalSpecificEnvVarHandler.rootCertificate() ||
+      this._baseEnvVarHandler.rootCertificate();
 
     if (rootCertificate) {
       try {
@@ -174,8 +220,8 @@ class EnvironmentGrpcExporterConfigurationProvider
 
   getClientKey(): Buffer | undefined {
     const clientKey =
-      this._baseEnvVarHandler.clientKey() ||
-      this._signalSpecificEnvVarHandler.clientKey();
+      this._signalSpecificEnvVarHandler.clientKey() ||
+      this._baseEnvVarHandler.clientKey();
 
     if (clientKey) {
       try {
@@ -194,10 +240,10 @@ class EnvironmentGrpcExporterConfigurationProvider
       return config.url;
     }
 
-    return (
-      this._baseEnvVarHandler.endpoint() ||
-      this._signalSpecificEnvVarHandler.endpoint()
-    );
+    const signalspecificUrl = this._signalSpecificEnvVarHandler.endpoint();
+    const url = signalspecificUrl || this._baseEnvVarHandler.endpoint();
+
+    return url;
   }
 }
 
@@ -207,7 +253,7 @@ export function onInit<ExportItem, ServiceRequest>(
   configProvider: IGrpcExporterConfigurationProvider
 ): void {
   collector.grpcQueue = [];
-  const endpoint = configProvider.getEndpoint(config) || DEFAULT_COLLECTOR_URL;
+  const endpoint = configProvider.getEndpoint(config)!;
 
   const credentials: grpc.ChannelCredentials = configureSecurity(
     config.credentials,

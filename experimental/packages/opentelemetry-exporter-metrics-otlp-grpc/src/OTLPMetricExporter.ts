@@ -63,11 +63,6 @@ class OTLPMetricExporterProxy extends OTLPGRPCExporterNodeBase<
     return ServiceClientType.METRICS;
   }
 
-  // TODO: unnecessary
-  getDefaultUrl(_config: OTLPGRPCExporterConfigNode): string {
-    return '';
-  }
-
   convert(metrics: ResourceMetrics[]): IExportMetricsServiceRequest {
     return createExportMetricsServiceRequest(metrics);
   }

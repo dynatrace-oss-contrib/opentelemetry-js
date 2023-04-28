@@ -14,18 +14,26 @@
  * limitations under the License.
  */
 
-import {diag} from '@opentelemetry/api';
-import {Metadata} from '@grpc/grpc-js';
-import {GRPCQueueItem, OTLPGRPCExporterConfigNode, ServiceClient, ServiceClientType,} from './types';
-import {baggageUtils, getEnv} from '@opentelemetry/core';
+import { diag } from '@opentelemetry/api';
+import { Metadata } from '@grpc/grpc-js';
+import {
+  GRPCQueueItem,
+  OTLPGRPCExporterConfigNode,
+  ServiceClient,
+  ServiceClientType,
+} from './types';
+import { baggageUtils, getEnv } from '@opentelemetry/core';
 import {
   createConfigurationProvider,
   IGrpcExporterConfigurationProvider,
   logsHandler,
   metricsHandler,
-  traceHandler,
+  traceHandler, validateConfig,
 } from './util';
-import {OTLPExporterBase, OTLPExporterError,} from '@opentelemetry/otlp-exporter-base';
+import {
+  OTLPExporterBase,
+  OTLPExporterError,
+} from '@opentelemetry/otlp-exporter-base';
 
 /**
  * OTLP Exporter abstract base class
@@ -54,6 +62,8 @@ export abstract class OTLPGRPCExporterNodeBase<
     } else {
       this._configProvider = createConfigurationProvider(logsHandler);
     }
+
+    validateConfig(config, this._configProvider);
 
     if (config.headers) {
       diag.warn('Headers cannot be set when using grpc');
@@ -122,6 +132,10 @@ export abstract class OTLPGRPCExporterNodeBase<
     if (this.serviceClient) {
       this.serviceClient.close();
     }
+  }
+  // TODO: unnecessary
+  getDefaultUrl(_config: OTLPGRPCExporterConfigNode): string {
+    return '';
   }
 
   abstract getServiceProtoPath(): string;
