@@ -50,6 +50,7 @@ const ignoredLernaProjects = [
   'selenium-tests',
   'examples/otlp-exporter-node',
   'examples/opentelemetry-web',
+  'examples/flagd',
   'examples/http',
   'examples/https',
 ];

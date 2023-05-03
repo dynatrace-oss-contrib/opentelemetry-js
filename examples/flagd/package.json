@@ -1,0 +1,27 @@
+{
+  "name": "example-fladg-otel",
+  "private": true,
+  "version": "0.38.0",
+  "description": "Example of using flagd with otel tracing",
+  "main": "index.js",
+  "scripts": {
+    "start": "node --require ./traces.js client.js",
+    "docker:start": "cd ./docker && docker-compose down && docker-compose up",
+    "docker:startd": "cd ./docker && docker-compose down && docker-compose up -d",
+    "docker:stop": "cd ./docker && docker-compose down"
+  },
+  "dependencies": {
+    "@openfeature/js-sdk": "^1.2.0",
+    "@openfeature/flagd-provider": "^0.7.6",
+    "@opentelemetry/api": "^1.4.1",
+    "@opentelemetry/context-async-hooks": "1.12.0",
+    "@opentelemetry/core": "1.12.0",
+    "@opentelemetry/exporter-trace-otlp-proto": "0.38.0",
+    "@opentelemetry/instrumentation": "0.38.0",
+    "@opentelemetry/instrumentation-grpc": "0.38.0",
+    "@opentelemetry/resources": "1.12.0",
+    "@opentelemetry/sdk-trace-base": "1.12.0",
+    "@opentelemetry/sdk-trace-node": "1.12.0",
+    "@opentelemetry/semantic-conventions": "1.12.0"
+  }
+}
