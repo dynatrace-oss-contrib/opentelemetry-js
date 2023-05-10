@@ -88,7 +88,8 @@ export class ContextAPI {
   }
 
   private _getContextManager(): ContextManager {
-    return getGlobal(API_NAME) || NOOP_CONTEXT_MANAGER;
+    const contextManager = getGlobal(API_NAME) || NOOP_CONTEXT_MANAGER;
+    return contextManager;
   }
 
   /** Disable and remove the global context manager */

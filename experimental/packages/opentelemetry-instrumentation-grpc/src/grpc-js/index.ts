@@ -30,6 +30,7 @@ import {
   MakeClientConstructorFunction,
   PackageDefinition,
   GrpcClientFunc,
+  UnaryRequestFunction,
 } from './types';
 import {
   context,
@@ -48,6 +49,7 @@ import {
   getMethodsToWrap,
   makeGrpcClientRemoteCall,
   getMetadata,
+  setSpanContext,
 } from './clientUtils';
 import { EventEmitter } from 'events';
 import { _extractMethodAndService, metadataCapture, URI_REGEX } from '../utils';
@@ -107,6 +109,14 @@ export class GrpcJsInstrumentation extends InstrumentationBase {
             'loadPackageDefinition',
             this._patchLoadPackageDefinition(moduleExports)
           );
+          if (isWrapped(moduleExports.Client.prototype)) {
+            this._unwrap(moduleExports.Client.prototype, 'makeUnaryRequest');
+          }
+          this._wrap(
+            moduleExports.Client.prototype,
+            'makeUnaryRequest',
+            this._patchUnaryRequest() as any
+          );
           return moduleExports;
         },
         (moduleExports, version) => {
@@ -117,6 +127,7 @@ export class GrpcJsInstrumentation extends InstrumentationBase {
           this._unwrap(moduleExports, 'makeClientConstructor');
           this._unwrap(moduleExports, 'makeGenericClientConstructor');
           this._unwrap(moduleExports, 'loadPackageDefinition');
+          this._unwrap(moduleExports.Client.prototype, 'makeUnaryRequest');
         }
       ),
     ];
@@ -247,6 +258,59 @@ export class GrpcJsInstrumentation extends InstrumentationBase {
         );
         return originalRegisterResult;
       } as typeof grpcJs.Server.prototype.register;
+    };
+  }
+
+  private _patchUnaryRequest(): (
+    originalUnaryRequest: UnaryRequestFunction
+  ) => UnaryRequestFunction {
+    const instrumentation = this;
+    return (originalUnaryRequest: UnaryRequestFunction) => {
+      // const config = this.getConfig();
+      instrumentation._diag.debug('patched makeUnaryRequest on grpc client');
+
+      return function makeUnaryRequest(
+        this: grpcJs.Client,
+        method: string,
+        serialize: (value: any) => Buffer,
+        deserialize: (value: Buffer) => any,
+        argument: any,
+        metadata: grpcJs.Metadata,
+        options: grpcJs.CallOptions,
+        callback: grpcJs.requestCallback<any>
+      ): grpcJs.ClientUnaryCall {
+        const span = instrumentation.tracer
+          // TODO: populate name
+          .startSpan('grpcSpan', { kind: SpanKind.CLIENT })
+          .setAttributes({
+            [SemanticAttributes.RPC_SYSTEM]: 'grpc',
+            [SemanticAttributes.RPC_METHOD]: method,
+            // TODO: populate service
+            [SemanticAttributes.RPC_SERVICE]: 'service',
+          });
+
+        instrumentation._metadataCapture.client.captureRequestMetadata(
+          span,
+          metadata
+        );
+
+        return context.with(trace.setSpan(context.active(), span), () => {
+          const span = trace.getSpan(context.active());
+          setSpanContext(metadata);
+          const originalRequestResult = originalUnaryRequest.call(
+            this,
+            method,
+            serialize,
+            deserialize,
+            argument,
+            metadata,
+            options,
+            callback
+          );
+          span?.end();
+          return originalRequestResult;
+        });
+      } as typeof grpcJs.Client.prototype.makeUnaryRequest;
     };
   }
 

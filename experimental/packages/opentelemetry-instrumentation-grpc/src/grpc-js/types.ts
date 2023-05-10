@@ -54,6 +54,16 @@ export type GrpcClientFunc = ((...args: unknown[]) => GrpcEmitter) & {
 };
 
 export type ServerRegisterFunction = typeof grpcJs.Server.prototype.register;
+export type UnaryRequestFunction = (
+  this: grpcJs.Client,
+  method: string,
+  serialize: (value: any) => Buffer,
+  deserialize: (value: Buffer) => any,
+  argument: any,
+  metadata: grpcJs.Metadata,
+  options: grpcJs.CallOptions,
+  callback: grpcJs.requestCallback<any>
+) => grpcJs.ClientUnaryCall;
 
 export type MakeClientConstructorFunction =
   typeof grpcJs.makeGenericClientConstructor;

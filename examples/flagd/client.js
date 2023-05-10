@@ -11,11 +11,11 @@ OpenFeature.setProvider(new FlagdProvider({
 async function evalFlags() {
   let tracer = api.trace.getTracer("simple-trace");
   const span = tracer.startSpan('client.js:main()');
-
   const client = OpenFeature.getClient();
-
-  const decision = await client.getBooleanValue("myBoolFlag", false);
-  console.log(decision)
+  await api.context.with(api.context.active(), async () => {
+    const decision = await client.getBooleanValue("myBoolFlag", false);
+    console.log(decision)
+  })
 
   span.end()
 }
