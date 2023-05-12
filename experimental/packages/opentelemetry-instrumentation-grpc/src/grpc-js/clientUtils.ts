@@ -67,6 +67,41 @@ export function getMethodsToWrap(
 }
 
 /**
+ * Patches a callback so that the current span for this trace is also ended
+ * when the callback is invoked.
+ */
+export function patchedCallback(
+  span: Span,
+  callback: SendUnaryDataCallback<ResponseType>
+) {
+  const wrappedFn: SendUnaryDataCallback<ResponseType> = (
+    err: grpcJs.ServiceError | null,
+    res: any
+  ) => {
+    if (err) {
+      if (err.code) {
+        span.setStatus(_grpcStatusCodeToSpanStatus(err.code));
+        span.setAttribute(SemanticAttributes.RPC_GRPC_STATUS_CODE, err.code);
+      }
+      span.setAttributes({
+        [AttributeNames.GRPC_ERROR_NAME]: err.name,
+        [AttributeNames.GRPC_ERROR_MESSAGE]: err.message,
+      });
+    } else {
+      span.setStatus({ code: SpanStatusCode.UNSET });
+      span.setAttribute(
+        SemanticAttributes.RPC_GRPC_STATUS_CODE,
+        GRPC_STATUS_CODE_OK
+      );
+    }
+
+    span.end();
+    callback(err, res);
+  };
+  return context.bind(context.active(), wrappedFn);
+}
+
+/**
  * Execute grpc client call. Apply completitionspan properties and end the
  * span on callback or receiving an emitted event.
  */
@@ -77,41 +112,6 @@ export function makeGrpcClientRemoteCall(
   metadata: grpcJs.Metadata,
   self: grpcJs.Client
 ): (span: Span) => EventEmitter {
-  /**
-   * Patches a callback so that the current span for this trace is also ended
-   * when the callback is invoked.
-   */
-  function patchedCallback(
-    span: Span,
-    callback: SendUnaryDataCallback<ResponseType>
-  ) {
-    const wrappedFn: SendUnaryDataCallback<ResponseType> = (
-      err: grpcJs.ServiceError | null,
-      res: any
-    ) => {
-      if (err) {
-        if (err.code) {
-          span.setStatus(_grpcStatusCodeToSpanStatus(err.code));
-          span.setAttribute(SemanticAttributes.RPC_GRPC_STATUS_CODE, err.code);
-        }
-        span.setAttributes({
-          [AttributeNames.GRPC_ERROR_NAME]: err.name,
-          [AttributeNames.GRPC_ERROR_MESSAGE]: err.message,
-        });
-      } else {
-        span.setStatus({ code: SpanStatusCode.UNSET });
-        span.setAttribute(
-          SemanticAttributes.RPC_GRPC_STATUS_CODE,
-          GRPC_STATUS_CODE_OK
-        );
-      }
-
-      span.end();
-      callback(err, res);
-    };
-    return context.bind(context.active(), wrappedFn);
-  }
-
   return (span: Span) => {
     // if unary or clientStream
     if (!original.responseStream) {

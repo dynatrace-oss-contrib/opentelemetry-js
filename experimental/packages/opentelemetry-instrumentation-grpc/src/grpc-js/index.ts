@@ -38,7 +38,8 @@ import {
   ROOT_CONTEXT,
   SpanOptions,
   SpanKind,
-  trace, Span,
+  trace,
+  Span,
 } from '@opentelemetry/api';
 import {
   shouldNotTraceServerCall,
@@ -50,6 +51,7 @@ import {
   makeGrpcClientRemoteCall,
   getMetadata,
   setSpanContext,
+  patchedCallback,
 } from './clientUtils';
 import { EventEmitter } from 'events';
 import { _extractMethodAndService, metadataCapture, URI_REGEX } from '../utils';
@@ -266,7 +268,6 @@ export class GrpcJsInstrumentation extends InstrumentationBase {
   ) => UnaryRequestFunction {
     const instrumentation = this;
     return (originalUnaryRequest: UnaryRequestFunction) => {
-      // const config = this.getConfig();
       instrumentation._diag.debug('patched makeUnaryRequest on grpc client');
 
       return function makeUnaryRequest(
@@ -280,14 +281,15 @@ export class GrpcJsInstrumentation extends InstrumentationBase {
         callback: grpcJs.requestCallback<any>
       ): grpcJs.ClientUnaryCall {
         const name = `grpc.${method.replace('/', '')}`;
+        const { service, method: methodAttributeValue } =
+          _extractMethodAndService(method);
+
         const span = instrumentation.tracer
-          // TODO: populate name
           .startSpan(name, { kind: SpanKind.CLIENT })
           .setAttributes({
             [SemanticAttributes.RPC_SYSTEM]: 'grpc',
-            [SemanticAttributes.RPC_METHOD]: method,
-            // TODO: populate service
-            [SemanticAttributes.RPC_SERVICE]: 'service',
+            [SemanticAttributes.RPC_METHOD]: methodAttributeValue,
+            [SemanticAttributes.RPC_SERVICE]: service,
           });
 
         instrumentation.extractNetMetadata(this, span);
@@ -298,7 +300,6 @@ export class GrpcJsInstrumentation extends InstrumentationBase {
         );
 
         return context.with(trace.setSpan(context.active(), span), () => {
-          const span = trace.getSpan(context.active());
           setSpanContext(metadata);
 
           const originalRequestResult = originalUnaryRequest.call(
@@ -309,15 +310,14 @@ export class GrpcJsInstrumentation extends InstrumentationBase {
             argument,
             metadata,
             options,
-            callback
+            patchedCallback(span, callback)
           );
-          /*originalRequestResult.on('metadata', responseMetadata => {
+          originalRequestResult.on('metadata', responseMetadata => {
             instrumentation._metadataCapture.client.captureResponseMetadata(
-              span!,
+              span,
               responseMetadata
             );
-          });*/
-          span?.end();
+          });
           return originalRequestResult;
         });
       } as typeof grpcJs.Client.prototype.makeUnaryRequest;

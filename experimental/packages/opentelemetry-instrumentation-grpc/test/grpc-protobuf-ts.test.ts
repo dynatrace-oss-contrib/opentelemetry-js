@@ -39,6 +39,7 @@ import {
 import { W3CTraceContextPropagator } from '@opentelemetry/core';
 import { AsyncHooksContextManager } from '@opentelemetry/context-async-hooks';
 import { assertPropagation, assertSpan } from './utils/assertionUtils';
+import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 
 interface TestRequestResponse {
   num: number;
@@ -102,14 +103,14 @@ describe('#grpc-protobuf', () => {
       });
     });
 
-    it('test-call', async () => {
+    it('unaryMethod', async () => {
       const finishedCall = await client.unaryMethod({
         num: MAX_ERROR_STATUS + 1,
       });
       assert.strictEqual(finishedCall.response.num, MAX_ERROR_STATUS + 1);
       const spans = memoryExporter.getFinishedSpans();
-      const clientSpan = spans[0];
-      const serverSpan = spans[1];
+      const clientSpan = spans[1];
+      const serverSpan = spans[0];
 
       const validations = {
         name: 'grpc.pkg_test.GrpcTester/UnaryMethod',
@@ -122,10 +123,60 @@ describe('#grpc-protobuf', () => {
         clientSpan.spanContext().traceId,
         serverSpan.spanContext().traceId
       );
-      assertPropagation(clientSpan, serverSpan);
+      assertPropagation(serverSpan, clientSpan);
 
       assertSpan('grpc', serverSpan, SpanKind.SERVER, validations);
       assertSpan('grpc', clientSpan, SpanKind.CLIENT, validations);
+      assert.strictEqual(
+        clientSpan.attributes[SemanticAttributes.RPC_METHOD],
+        'UnaryMethod'
+      );
+      assert.strictEqual(
+        clientSpan.attributes[SemanticAttributes.RPC_SERVICE],
+        'pkg_test.GrpcTester'
+      );
+    });
+
+    it('clientStreamMethod', async () => {
+      const call = client.clientStreamMethod({
+        num: MAX_ERROR_STATUS + 1,
+      });
+
+      await call.requests.send({ num: MAX_ERROR_STATUS + 1 });
+      await call.requests.send({ num: MAX_ERROR_STATUS + 1 });
+      await call.requests.send({ num: MAX_ERROR_STATUS + 1 });
+      await call.requests.complete();
+
+      const finshedCall = await call.response;
+
+      assert.strictEqual(finshedCall.num, (MAX_ERROR_STATUS + 1) * 3);
+      const spans = memoryExporter.getFinishedSpans();
+      const clientSpan = spans[1];
+      const serverSpan = spans[0];
+
+      const validations = {
+        name: 'grpc.pkg_test.GrpcTester/UnaryMethod',
+        netPeerName: 'localhost',
+        status: grpc.status.OK,
+        netPeerPort: 3333,
+      };
+
+      assert.strictEqual(
+        clientSpan.spanContext().traceId,
+        serverSpan.spanContext().traceId
+      );
+      assertPropagation(serverSpan, clientSpan);
+
+      assertSpan('grpc', serverSpan, SpanKind.SERVER, validations);
+      assertSpan('grpc', clientSpan, SpanKind.CLIENT, validations);
+      assert.strictEqual(
+        clientSpan.attributes[SemanticAttributes.RPC_METHOD],
+        'UnaryMethod'
+      );
+      assert.strictEqual(
+        clientSpan.attributes[SemanticAttributes.RPC_SERVICE],
+        'pkg_test.GrpcTester'
+      );
     });
   });
 });
