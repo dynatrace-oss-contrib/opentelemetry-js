@@ -38,7 +38,7 @@ import {
   ROOT_CONTEXT,
   SpanOptions,
   SpanKind,
-  trace,
+  trace, Span,
 } from '@opentelemetry/api';
 import {
   shouldNotTraceServerCall,
@@ -279,15 +279,18 @@ export class GrpcJsInstrumentation extends InstrumentationBase {
         options: grpcJs.CallOptions,
         callback: grpcJs.requestCallback<any>
       ): grpcJs.ClientUnaryCall {
+        const name = `grpc.${method.replace('/', '')}`;
         const span = instrumentation.tracer
           // TODO: populate name
-          .startSpan('grpcSpan', { kind: SpanKind.CLIENT })
+          .startSpan(name, { kind: SpanKind.CLIENT })
           .setAttributes({
             [SemanticAttributes.RPC_SYSTEM]: 'grpc',
             [SemanticAttributes.RPC_METHOD]: method,
             // TODO: populate service
             [SemanticAttributes.RPC_SERVICE]: 'service',
           });
+
+        instrumentation.extractNetMetadata(this, span);
 
         instrumentation._metadataCapture.client.captureRequestMetadata(
           span,
@@ -297,6 +300,7 @@ export class GrpcJsInstrumentation extends InstrumentationBase {
         return context.with(trace.setSpan(context.active(), span), () => {
           const span = trace.getSpan(context.active());
           setSpanContext(metadata);
+
           const originalRequestResult = originalUnaryRequest.call(
             this,
             method,
@@ -307,6 +311,12 @@ export class GrpcJsInstrumentation extends InstrumentationBase {
             options,
             callback
           );
+          /*originalRequestResult.on('metadata', responseMetadata => {
+            instrumentation._metadataCapture.client.captureResponseMetadata(
+              span!,
+              responseMetadata
+            );
+          });*/
           span?.end();
           return originalRequestResult;
         });
@@ -392,18 +402,7 @@ export class GrpcJsInstrumentation extends InstrumentationBase {
             [SemanticAttributes.RPC_METHOD]: method,
             [SemanticAttributes.RPC_SERVICE]: service,
           });
-        // set net.peer.* from target (e.g., "dns:otel-productcatalogservice:8080") as a hint to APMs
-        const parsedUri = URI_REGEX.exec(this.getChannel().getTarget());
-        if (parsedUri != null && parsedUri.groups != null) {
-          span.setAttribute(
-            SemanticAttributes.NET_PEER_NAME,
-            parsedUri.groups['name']
-          );
-          span.setAttribute(
-            SemanticAttributes.NET_PEER_PORT,
-            parseInt(parsedUri.groups['port'])
-          );
-        }
+        instrumentation.extractNetMetadata(this, span);
 
         instrumentation._metadataCapture.client.captureRequestMetadata(
           span,
@@ -423,6 +422,21 @@ export class GrpcJsInstrumentation extends InstrumentationBase {
       Object.assign(clientMethodTrace, original);
       return clientMethodTrace;
     };
+  }
+
+  private extractNetMetadata(client: grpcJs.Client, span: Span) {
+    // set net.peer.* from target (e.g., "dns:otel-productcatalogservice:8080") as a hint to APMs
+    const parsedUri = URI_REGEX.exec(client.getChannel().getTarget());
+    if (parsedUri != null && parsedUri.groups != null) {
+      span.setAttribute(
+        SemanticAttributes.NET_PEER_NAME,
+        parsedUri.groups['name']
+      );
+      span.setAttribute(
+        SemanticAttributes.NET_PEER_PORT,
+        parseInt(parsedUri.groups['port'])
+      );
+    }
   }
 
   /**

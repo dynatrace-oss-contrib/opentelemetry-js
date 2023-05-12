@@ -30,9 +30,15 @@ import { promisify } from 'util';
 import * as protoLoader from '@grpc/proto-loader';
 import * as path from 'path';
 import * as assert from 'assert';
-import { context, ContextManager, propagation } from '@opentelemetry/api';
+import {
+  context,
+  ContextManager,
+  propagation,
+  SpanKind,
+} from '@opentelemetry/api';
 import { W3CTraceContextPropagator } from '@opentelemetry/core';
 import { AsyncHooksContextManager } from '@opentelemetry/context-async-hooks';
+import { assertPropagation, assertSpan } from './utils/assertionUtils';
 
 interface TestRequestResponse {
   num: number;
@@ -101,6 +107,25 @@ describe('#grpc-protobuf', () => {
         num: MAX_ERROR_STATUS + 1,
       });
       assert.strictEqual(finishedCall.response.num, MAX_ERROR_STATUS + 1);
+      const spans = memoryExporter.getFinishedSpans();
+      const clientSpan = spans[0];
+      const serverSpan = spans[1];
+
+      const validations = {
+        name: 'grpc.pkg_test.GrpcTester/UnaryMethod',
+        netPeerName: 'localhost',
+        status: grpc.status.OK,
+        netPeerPort: 3333,
+      };
+
+      assert.strictEqual(
+        clientSpan.spanContext().traceId,
+        serverSpan.spanContext().traceId
+      );
+      assertPropagation(clientSpan, serverSpan);
+
+      assertSpan('grpc', serverSpan, SpanKind.SERVER, validations);
+      assertSpan('grpc', clientSpan, SpanKind.CLIENT, validations);
     });
   });
 });
