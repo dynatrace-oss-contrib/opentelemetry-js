@@ -43,7 +43,9 @@ export interface IGrpcExporterConfigurationProvider {
   getRootCertificate(): Buffer | undefined;
   getClientCertificate(): Buffer | undefined;
   getClientKey(): Buffer | undefined;
-  getCompression(): CompressionAlgorithm;
+  getCompression(
+    config?: OTLPGRPCExporterConfigNode
+  ): CompressionAlgorithm | undefined;
 }
 
 export class EnvironmentGrpcTraceExporterConfigurationProvider
@@ -78,14 +80,20 @@ export class EnvironmentGrpcTraceExporterConfigurationProvider
     }
   }
 
-  getCompression(): CompressionAlgorithm {
-    const definedCompression =
-      getEnv().OTEL_EXPORTER_OTLP_TRACES_COMPRESSION ||
-      getEnv().OTEL_EXPORTER_OTLP_COMPRESSION;
+  getCompression(
+    config?: OTLPGRPCExporterConfigNode
+  ): CompressionAlgorithm | undefined {
+    if (config?.compression) {
+      return config?.compression;
+    } else {
+      const definedCompression =
+        getEnv().OTEL_EXPORTER_OTLP_TRACES_COMPRESSION ||
+        getEnv().OTEL_EXPORTER_OTLP_COMPRESSION;
 
-    return definedCompression === 'gzip'
-      ? CompressionAlgorithm.GZIP
-      : CompressionAlgorithm.NONE;
+      return definedCompression === 'gzip'
+        ? CompressionAlgorithm.GZIP
+        : CompressionAlgorithm.NONE;
+    }
   }
 
   getRootCertificate(): Buffer | undefined {
@@ -139,7 +147,9 @@ export function onInit<ExportItem, ServiceRequest>(
   try {
     if (collector.getServiceClientType() === ServiceClientType.SPANS) {
       const client = new TraceExportServiceClient(collector.url, credentials, {
-        'grpc.default_compression_algorithm': collector.compression.valueOf(),
+        'grpc.default_compression_algorithm': toGrpcCompression(
+          configProvider.getCompression(config)
+        ).valueOf(),
       });
 
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -147,7 +157,9 @@ export function onInit<ExportItem, ServiceRequest>(
       collector.serviceClient = client;
     } else if (collector.getServiceClientType() === ServiceClientType.METRICS) {
       const client = new MetricExportServiceClient(collector.url, credentials, {
-        'grpc.default_compression_algorithm': collector.compression.valueOf(),
+        'grpc.default_compression_algorithm': toGrpcCompression(
+          configProvider.getCompression(config)
+        ).valueOf(),
       });
 
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -155,7 +167,9 @@ export function onInit<ExportItem, ServiceRequest>(
       collector.serviceClient = client;
     } else if (collector.getServiceClientType() === ServiceClientType.LOGS) {
       const client = new LogsExportServiceClient(collector.url, credentials, {
-        'grpc.default_compression_algorithm': collector.compression.valueOf(),
+        'grpc.default_compression_algorithm': toGrpcCompression(
+          configProvider.getCompression(config)
+        ).valueOf(),
       });
 
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -265,7 +279,7 @@ export function useSecureConnection(
 }
 
 function toGrpcCompression(
-  compression: CompressionAlgorithm
+  compression?: CompressionAlgorithm
 ): GrpcCompressionAlgorithm {
   if (compression === CompressionAlgorithm.NONE)
     return GrpcCompressionAlgorithm.NONE;
@@ -280,19 +294,4 @@ function toGrpcCompression(
 export enum GrpcCompressionAlgorithm {
   NONE = 0,
   GZIP = 2,
-}
-
-export function configureCompression(
-  compression: CompressionAlgorithm | undefined,
-  configProvider: EnvironmentGrpcTraceExporterConfigurationProvider
-): GrpcCompressionAlgorithm {
-  if (compression) {
-    return toGrpcCompression(compression);
-  } else {
-    const definedCompression = configProvider.getCompression();
-
-    return definedCompression === 'gzip'
-      ? GrpcCompressionAlgorithm.GZIP
-      : GrpcCompressionAlgorithm.NONE;
-  }
 }

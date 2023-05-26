@@ -24,9 +24,7 @@ import {
 } from './types';
 import { getEnv, baggageUtils } from '@opentelemetry/core';
 import {
-  configureCompression,
   EnvironmentGrpcTraceExporterConfigurationProvider,
-  GrpcCompressionAlgorithm,
   IGrpcExporterConfigurationProvider,
 } from './util';
 import {
@@ -49,7 +47,6 @@ export abstract class OTLPGRPCExporterNodeBase<
   metadata?: Metadata;
   serviceClient?: ServiceClient = undefined;
   private _send!: Function;
-  compression: GrpcCompressionAlgorithm;
   private _configProvider: IGrpcExporterConfigurationProvider;
 
   constructor(config: OTLPGRPCExporterConfigNode = {}) {
@@ -66,10 +63,6 @@ export abstract class OTLPGRPCExporterNodeBase<
     for (const [k, v] of Object.entries(headers)) {
       this.metadata.set(k, v);
     }
-    this.compression = configureCompression(
-      config.compression,
-      this._configProvider
-    );
   }
 
   private _sendPromise(

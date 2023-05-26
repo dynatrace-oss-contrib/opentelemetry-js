@@ -21,8 +21,6 @@ import { diag } from '@opentelemetry/api';
 import * as grpc from '@grpc/grpc-js';
 import {
   validateAndNormalizeUrl,
-  configureCompression,
-  GrpcCompressionAlgorithm,
   configureSecurity,
   useSecureConnection,
   DEFAULT_COLLECTOR_URL,
@@ -207,36 +205,27 @@ describe('useSecureConnection', () => {
   });
 });
 
-describe('configureCompression', () => {
+describe('EnvironmentGrpcTraceExporterConfigurationProvider.getCompression()', () => {
   const envSource = process.env;
   const envProvider = new EnvironmentGrpcTraceExporterConfigurationProvider();
   it('should return none for compression', () => {
     const compression = CompressionAlgorithm.NONE;
     assert.strictEqual(
-      configureCompression(compression, envProvider),
-      GrpcCompressionAlgorithm.NONE
+      envProvider.getCompression({ compression }),
+      CompressionAlgorithm.NONE
     );
   });
   it('should return gzip compression defined via env', () => {
     envSource.OTEL_EXPORTER_OTLP_TRACES_COMPRESSION = 'gzip';
-    assert.strictEqual(
-      configureCompression(undefined, envProvider),
-      GrpcCompressionAlgorithm.GZIP
-    );
+    assert.strictEqual(envProvider.getCompression(), CompressionAlgorithm.GZIP);
     delete envSource.OTEL_EXPORTER_OTLP_TRACES_COMPRESSION;
   });
   it('should return none for compression defined via env', () => {
     envSource.OTEL_EXPORTER_OTLP_TRACES_COMPRESSION = 'none';
-    assert.strictEqual(
-      configureCompression(undefined, envProvider),
-      GrpcCompressionAlgorithm.NONE
-    );
+    assert.strictEqual(envProvider.getCompression(), CompressionAlgorithm.NONE);
     delete envSource.OTEL_EXPORTER_OTLP_TRACES_COMPRESSION;
   });
   it('should return none for compression when no compression is set', () => {
-    assert.strictEqual(
-      configureCompression(undefined, envProvider),
-      GrpcCompressionAlgorithm.NONE
-    );
+    assert.strictEqual(envProvider.getCompression(), CompressionAlgorithm.NONE);
   });
 });

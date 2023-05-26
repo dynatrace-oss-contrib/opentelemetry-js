@@ -19,6 +19,5 @@ export { ServiceClientType, OTLPGRPCExporterConfigNode } from './types';
 export {
   DEFAULT_COLLECTOR_URL,
   validateAndNormalizeUrl,
-  GrpcCompressionAlgorithm,
   EnvironmentGrpcTraceExporterConfigurationProvider,
 } from './util';

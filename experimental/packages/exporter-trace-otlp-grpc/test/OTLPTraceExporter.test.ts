@@ -37,7 +37,6 @@ import {
 } from './traceHelper';
 import * as core from '@opentelemetry/core';
 import { CompressionAlgorithm } from '@opentelemetry/otlp-exporter-base';
-import { GrpcCompressionAlgorithm } from '@opentelemetry/otlp-grpc-exporter-base';
 import {
   IExportTraceServiceRequest,
   IResourceSpans,
@@ -269,30 +268,6 @@ const testCollectorExporter = (params: TestParams) =>
 
           done();
         }, 500);
-      });
-    });
-    describe('Trace Exporter with compression', () => {
-      const envSource = process.env;
-      it('should return gzip compression algorithm on exporter', () => {
-        const credentials = params.useTLS
-          ? grpc.credentials.createSsl(
-              fs.readFileSync('./test/certs/ca.crt'),
-              fs.readFileSync('./test/certs/client.key'),
-              fs.readFileSync('./test/certs/client.crt')
-            )
-          : grpc.credentials.createInsecure();
-
-        envSource.OTEL_EXPORTER_OTLP_COMPRESSION = 'gzip';
-        collectorExporter = new OTLPTraceExporter({
-          url: 'https://' + address,
-          credentials,
-          metadata: params.metadata,
-        });
-        assert.strictEqual(
-          collectorExporter.compression,
-          GrpcCompressionAlgorithm.GZIP
-        );
-        delete envSource.OTEL_EXPORTER_OTLP_COMPRESSION;
       });
     });
   });

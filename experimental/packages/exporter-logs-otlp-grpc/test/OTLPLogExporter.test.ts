@@ -32,7 +32,6 @@ import {
 } from './logsHelper';
 import * as core from '@opentelemetry/core';
 import { CompressionAlgorithm } from '@opentelemetry/otlp-exporter-base';
-import { GrpcCompressionAlgorithm } from '@opentelemetry/otlp-grpc-exporter-base';
 import {
   IExportLogsServiceRequest,
   IResourceLogs,
