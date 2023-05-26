@@ -16,7 +16,7 @@
 
 import * as grpc from '@grpc/grpc-js';
 import { diag } from '@opentelemetry/api';
-import { getEnv, globalErrorHandler } from '@opentelemetry/core';
+import { baggageUtils, getEnv, globalErrorHandler } from '@opentelemetry/core';
 import * as path from 'path';
 import { OTLPGRPCExporterNodeBase } from './OTLPGRPCExporterNodeBase';
 import { URL } from 'url';
@@ -47,6 +47,7 @@ export interface IGrpcExporterConfigurationProvider {
     config?: OTLPGRPCExporterConfigNode
   ): CompressionAlgorithm | undefined;
   getEndpoint(config?: OTLPGRPCExporterConfigNode): string | undefined;
+  getMetadata(config?: OTLPGRPCExporterConfigNode): grpc.Metadata | undefined;
 }
 
 type GrpcExporterEnvHandler = {
@@ -120,6 +121,10 @@ class DefaultGrpcExporterConfigurationProvider
   implements IGrpcExporterConfigurationProvider
 {
   constructor(private _baseProvider: IGrpcExporterConfigurationProvider) {}
+
+  getMetadata(config?: OTLPGRPCExporterConfigNode): grpc.Metadata | undefined {
+    return this._baseProvider.getMetadata(config) || new grpc.Metadata();
+  }
 
   getClientCertificate(): Buffer | undefined {
     return this._baseProvider.getClientCertificate();
@@ -244,6 +249,28 @@ class EnvironmentGrpcExporterConfigurationProvider
     const url = signalspecificUrl || this._baseEnvVarHandler.endpoint();
 
     return url;
+  }
+
+  getMetadata(config?: OTLPGRPCExporterConfigNode): grpc.Metadata | undefined {
+    const metadata = config?.metadata || new grpc.Metadata();
+
+    const baseHeaders = baggageUtils.parseKeyPairsIntoRecord(
+      this._baseEnvVarHandler.headers()
+    );
+
+    const signalHeaders = baggageUtils.parseKeyPairsIntoRecord(
+      this._signalSpecificEnvVarHandler.headers()
+    );
+
+    for (const [k, v] of Object.entries(baseHeaders)) {
+      metadata.set(k, v);
+    }
+
+    for (const [k, v] of Object.entries(signalHeaders)) {
+      metadata.set(k, v);
+    }
+
+    return metadata;
   }
 }
 

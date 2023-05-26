@@ -22,13 +22,13 @@ import {
   ServiceClient,
   ServiceClientType,
 } from './types';
-import { baggageUtils, getEnv } from '@opentelemetry/core';
 import {
   createConfigurationProvider,
   IGrpcExporterConfigurationProvider,
   logsHandler,
   metricsHandler,
-  traceHandler, validateConfig,
+  traceHandler,
+  validateConfig,
 } from './util';
 import {
   OTLPExporterBase,
@@ -56,8 +56,7 @@ export abstract class OTLPGRPCExporterNodeBase<
     super(config);
     if (this.getServiceClientType() === ServiceClientType.SPANS) {
       this._configProvider = createConfigurationProvider(traceHandler);
-    }
-    if (this.getServiceClientType() === ServiceClientType.METRICS) {
+    } else if (this.getServiceClientType() === ServiceClientType.METRICS) {
       this._configProvider = createConfigurationProvider(metricsHandler);
     } else {
       this._configProvider = createConfigurationProvider(logsHandler);
@@ -65,16 +64,11 @@ export abstract class OTLPGRPCExporterNodeBase<
 
     validateConfig(config, this._configProvider);
 
+    // TODO: why even allow setting headers in gRPC config interface when it's not respected anyway?
     if (config.headers) {
       diag.warn('Headers cannot be set when using grpc');
     }
-    const headers = baggageUtils.parseKeyPairsIntoRecord(
-      getEnv().OTEL_EXPORTER_OTLP_HEADERS
-    );
-    this.metadata = config.metadata || new Metadata();
-    for (const [k, v] of Object.entries(headers)) {
-      this.metadata.set(k, v);
-    }
+    this.metadata = this._configProvider.getMetadata(config);
   }
 
   private _sendPromise(

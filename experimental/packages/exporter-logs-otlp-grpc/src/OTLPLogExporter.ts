@@ -15,8 +15,6 @@
  */
 
 import { LogRecordExporter, ReadableLogRecord } from '@opentelemetry/sdk-logs';
-import { baggageUtils, getEnv } from '@opentelemetry/core';
-import { Metadata } from '@grpc/grpc-js';
 import {
   OTLPGRPCExporterConfigNode,
   OTLPGRPCExporterNodeBase,
@@ -36,13 +34,6 @@ export class OTLPLogExporter
 {
   constructor(config: OTLPGRPCExporterConfigNode = {}) {
     super(config);
-    const headers = baggageUtils.parseKeyPairsIntoRecord(
-      getEnv().OTEL_EXPORTER_OTLP_LOGS_HEADERS
-    );
-    this.metadata ||= new Metadata();
-    for (const [k, v] of Object.entries(headers)) {
-      this.metadata.set(k, v);
-    }
   }
 
   convert(logRecords: ReadableLogRecord[]): IExportLogsServiceRequest {
