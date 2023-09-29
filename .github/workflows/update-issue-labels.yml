@@ -1,0 +1,17 @@
+name: "Update issue labels based on comments posted"
+
+on:
+  issue_comment:
+    # ensure this only runs on created (not edited/modified)
+    types: [created]
+
+jobs:
+  # removes the "needs:author-response" label if the author of an issue responds
+  remove_needs_author_response:
+    runs-on: ubuntu-latest
+    if: ${{ !github.event.issue.pull_request && github.event.comment.user.id == github.event.issue.user.id }}
+    steps:
+      - run: |
+          gh -R $GITHUB_REPOSITORY issue edit ${{ github.event.issue.number }} --remove-label "needs:author-response"
+    env:
+      GH_TOKEN: ${{ github.token }}
