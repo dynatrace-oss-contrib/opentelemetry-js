@@ -15,7 +15,7 @@
  */
 
 import * as sinon from 'sinon';
-import { sendWithXhr } from '../../src/platform/browser/util';
+import { sendWithXhr } from '../../src/platform/browser/transport-util';
 import { nextTick } from 'process';
 import { ensureHeadersContain } from '../testHelper';
 

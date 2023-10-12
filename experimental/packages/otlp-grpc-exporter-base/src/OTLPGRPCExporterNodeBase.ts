@@ -48,6 +48,8 @@ export abstract class OTLPGRPCExporterNodeBase<
 
   constructor(config: OTLPGRPCExporterConfigNode = {}) {
     super(config);
+    // platform dependent
+    this.onInit(config);
     if (config.headers) {
       diag.warn('Headers cannot be set when using grpc');
     }
@@ -70,12 +72,7 @@ export abstract class OTLPGRPCExporterNodeBase<
       this._send(this, objects, resolve, reject);
     }).then(onSuccess, onError);
 
-    this._sendingPromises.push(promise);
-    const popPromise = () => {
-      const index = this._sendingPromises.indexOf(promise);
-      this._sendingPromises.splice(index, 1);
-    };
-    promise.then(popPromise, popPromise);
+    this.sendingQueue.pushPromise(promise);
   }
 
   onInit(config: OTLPGRPCExporterConfigNode): void {

@@ -18,38 +18,50 @@ import * as http from 'http';
 import * as https from 'https';
 import * as zlib from 'zlib';
 import { Readable } from 'stream';
-import { OTLPExporterNodeBase } from './OTLPExporterNodeBase';
 import { OTLPExporterNodeConfigBase } from '.';
 import { diag } from '@opentelemetry/api';
 import { CompressionAlgorithm } from './types';
-import { getEnv } from '@opentelemetry/core';
 import { OTLPExporterError } from '../../types';
 import {
-  DEFAULT_EXPORT_MAX_ATTEMPTS,
-  DEFAULT_EXPORT_INITIAL_BACKOFF,
   DEFAULT_EXPORT_BACKOFF_MULTIPLIER,
+  DEFAULT_EXPORT_INITIAL_BACKOFF,
+  DEFAULT_EXPORT_MAX_ATTEMPTS,
   DEFAULT_EXPORT_MAX_BACKOFF,
   isExportRetryable,
   parseRetryAfterToMills,
 } from '../../util';
 
+export type responseType = {
+  statusCode: number;
+  data: string | Buffer;
+  headers: any;
+};
+
+export type requestParams = {
+  timeoutMillis: number;
+  url: string;
+  headers: Record<string, string>;
+  agent: http.Agent | https.Agent | undefined;
+  compression: CompressionAlgorithm;
+};
+
 /**
  * Sends data using http
- * @param collector
+ * @param params
  * @param data
  * @param contentType
  * @param onSuccess
  * @param onError
  */
-export function sendWithHttp<ExportItem, ServiceRequest>(
-  collector: OTLPExporterNodeBase<ExportItem, ServiceRequest>,
+export function sendWithHttp(
+  params: requestParams,
   data: string | Buffer,
   contentType: string,
-  onSuccess: () => void,
+  onSuccess: (response?: responseType) => void,
   onError: (error: OTLPExporterError) => void
 ): void {
-  const exporterTimeout = collector.timeoutMillis;
-  const parsedUrl = new url.URL(collector.url);
+  const exporterTimeout = params.timeoutMillis;
+  const parsedUrl = new url.URL(params.url);
   const nodeVersion = Number(process.versions.node.split('.')[0]);
   let retryTimer: ReturnType<typeof setTimeout>;
   let req: http.ClientRequest;
@@ -75,9 +87,9 @@ export function sendWithHttp<ExportItem, ServiceRequest>(
     method: 'POST',
     headers: {
       'Content-Type': contentType,
-      ...collector.headers,
+      ...params.headers,
     },
-    agent: collector.agent,
+    agent: params.agent,
   };
 
   const request = parsedUrl.protocol === 'http:' ? http.request : https.request;
@@ -101,7 +113,11 @@ export function sendWithHttp<ExportItem, ServiceRequest>(
         if (reqIsDestroyed === false) {
           if (res.statusCode && res.statusCode < 299) {
             diag.debug(`statusCode: ${res.statusCode}`, responseData);
-            onSuccess();
+            onSuccess({
+              statusCode: res.statusCode,
+              data: responseData,
+              headers: res.headers,
+            });
             // clear all timers since request was completed and promise was resolved
             clearTimeout(exporterTimer);
             clearTimeout(retryTimer);
@@ -162,7 +178,7 @@ export function sendWithHttp<ExportItem, ServiceRequest>(
       clearTimeout(retryTimer);
     });
 
-    switch (collector.compression) {
+    switch (params.compression) {
       case CompressionAlgorithm.GZIP: {
         req.setHeader('Content-Encoding', 'gzip');
         const dataStream = readableFromBuffer(data);
@@ -209,20 +225,5 @@ export function createHttpAgent(
       `collector exporter failed to create http agent. err: ${err.message}`
     );
     return undefined;
-  }
-}
-
-export function configureCompression(
-  compression: CompressionAlgorithm | undefined
-): CompressionAlgorithm {
-  if (compression) {
-    return compression;
-  } else {
-    const definedCompression =
-      getEnv().OTEL_EXPORTER_OTLP_TRACES_COMPRESSION ||
-      getEnv().OTEL_EXPORTER_OTLP_COMPRESSION;
-    return definedCompression === CompressionAlgorithm.GZIP
-      ? CompressionAlgorithm.GZIP
-      : CompressionAlgorithm.NONE;
   }
 }

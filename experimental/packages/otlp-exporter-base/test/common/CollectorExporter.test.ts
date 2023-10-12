@@ -32,19 +32,14 @@ class OTLPTraceExporter extends OTLPExporterBase<
   ComplexTestObject,
   ExportRequest
 > {
-  onInit() {}
   onShutdown() {}
   send(
     items: any[],
     onSuccess: () => void,
     onError: (error: otlpTypes.OTLPExporterError) => void
   ) {
-    const promise = Promise.resolve(null);
-    this._sendingPromises.push(
-      promise.then(() =>
-        this._sendingPromises.splice(this._sendingPromises.indexOf(promise), 1)
-      )
-    );
+    const promise = Promise.resolve();
+    this.sendingQueue.pushPromise(promise);
   }
   getDefaultUrl(config: CollectorExporterConfig): string {
     return config.url || '';
@@ -64,10 +59,8 @@ describe('OTLPTraceExporter - common', () => {
   });
 
   describe('constructor', () => {
-    let onInitSpy: any;
 
     beforeEach(() => {
-      onInitSpy = sinon.stub(OTLPTraceExporter.prototype, 'onInit');
       collectorExporterConfig = {
         hostname: 'foo',
         url: 'http://foo.bar.com',
@@ -77,10 +70,6 @@ describe('OTLPTraceExporter - common', () => {
 
     it('should create an instance', () => {
       assert.ok(typeof collectorExporter !== 'undefined');
-    });
-
-    it('should call onInit', () => {
-      assert.strictEqual(onInitSpy.callCount, 1);
     });
 
     describe('when config contains certain params', () => {

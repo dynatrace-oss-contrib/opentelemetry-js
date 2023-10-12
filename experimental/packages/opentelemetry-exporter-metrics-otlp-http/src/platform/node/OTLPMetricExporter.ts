@@ -19,7 +19,7 @@ import { getEnv, baggageUtils } from '@opentelemetry/core';
 import { OTLPMetricExporterOptions } from '../../OTLPMetricExporterOptions';
 import { OTLPMetricExporterBase } from '../../OTLPMetricExporterBase';
 import {
-  OTLPExporterNodeBase,
+  OTLPJsonExporterNodeBase,
   OTLPExporterNodeConfigBase,
   appendResourcePathToUrl,
   appendRootPathToUrlIfNeeded,
@@ -36,7 +36,7 @@ const USER_AGENT = {
   'User-Agent': `OTel-OTLP-Exporter-JavaScript/${VERSION}`,
 };
 
-class OTLPExporterNodeProxy extends OTLPExporterNodeBase<
+class OTLPExporterNodeProxy extends OTLPJsonExporterNodeBase<
   ResourceMetrics,
   IExportMetricsServiceRequest
 > {

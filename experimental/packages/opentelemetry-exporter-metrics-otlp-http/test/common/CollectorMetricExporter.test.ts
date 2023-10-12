@@ -38,8 +38,6 @@ class OTLPMetricExporter extends OTLPExporterBase<
   ResourceMetrics,
   IExportMetricsServiceRequest
 > {
-  onInit() {}
-
   onShutdown() {}
 
   send() {}
@@ -68,10 +66,7 @@ describe('OTLPMetricExporter - common', () => {
   });
 
   describe('constructor', () => {
-    let onInitSpy: any;
-
     beforeEach(async () => {
-      onInitSpy = sinon.stub(OTLPMetricExporter.prototype, 'onInit');
       collectorExporterConfig = {
         hostname: 'foo',
         url: 'http://foo.bar.com',
@@ -91,10 +86,6 @@ describe('OTLPMetricExporter - common', () => {
 
     it('should create an instance', () => {
       assert.ok(typeof collectorExporter !== 'undefined');
-    });
-
-    it('should call onInit', () => {
-      assert.strictEqual(onInitSpy.callCount, 1);
     });
 
     describe('when config contains certain params', () => {

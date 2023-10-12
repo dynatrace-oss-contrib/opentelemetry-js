@@ -54,10 +54,7 @@ describe('OTLPTraceExporter - web', () => {
   });
 
   describe('constructor', () => {
-    let onInitSpy: any;
-
     beforeEach(() => {
-      onInitSpy = sinon.stub(OTLPTraceExporter.prototype, 'onInit');
       collectorExporterConfig = {
         hostname: 'foo',
         url: 'http://foo.bar.com',
@@ -67,10 +64,6 @@ describe('OTLPTraceExporter - web', () => {
 
     it('should create an instance', () => {
       assert.ok(typeof collectorTraceExporter !== 'undefined');
-    });
-
-    it('should call onInit', () => {
-      assert.strictEqual(onInitSpy.callCount, 1);
     });
 
     describe('when config contains certain params', () => {

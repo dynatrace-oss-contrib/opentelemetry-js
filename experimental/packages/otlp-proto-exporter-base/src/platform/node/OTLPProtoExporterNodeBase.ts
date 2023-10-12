@@ -17,19 +17,22 @@
 import { diag } from '@opentelemetry/api';
 import { ServiceClientType } from '../types';
 import {
-  OTLPExporterNodeBase as OTLPExporterBaseMain,
-  CompressionAlgorithm,
   OTLPExporterError,
   OTLPExporterNodeConfigBase,
+  OTLPHttpExporterNodeBase,
 } from '@opentelemetry/otlp-exporter-base';
 
-type SendFn = <ExportItem, ServiceRequest>(
-  collector: OTLPProtoExporterNodeBase<ExportItem, ServiceRequest>,
-  objects: ExportItem[],
-  compression: CompressionAlgorithm,
-  onSuccess: () => void,
+type SendFn = <ExportItem, ServiceRequest, ServiceResponse>(
+  collector: OTLPProtoExporterNodeBase<
+    ExportItem,
+    ServiceRequest,
+    ServiceResponse
+  >,
+  serviceClientType: ServiceClientType,
+  request: ServiceRequest,
+  onSuccess: (response?: ServiceResponse) => void,
   onError: (error: OTLPExporterError) => void
-) => void;
+) => Promise<void>;
 
 /**
  * Collector Exporter abstract base class
@@ -37,33 +40,25 @@ type SendFn = <ExportItem, ServiceRequest>(
 export abstract class OTLPProtoExporterNodeBase<
   ExportItem,
   ServiceRequest,
-> extends OTLPExporterBaseMain<ExportItem, ServiceRequest> {
+  ServiceResponse,
+> extends OTLPHttpExporterNodeBase<ExportItem, ServiceRequest> {
   private _send!: SendFn;
+  private readonly _converter: (items: ExportItem[]) => ServiceRequest;
+  private _serviceClientType: ServiceClientType;
 
-  constructor(config: OTLPExporterNodeConfigBase = {}) {
+  constructor(
+    config: OTLPExporterNodeConfigBase = {},
+    serviceClientType: ServiceClientType,
+    converter: (items: ExportItem[]) => ServiceRequest
+  ) {
     super(config);
-  }
-
-  private _sendPromise(
-    objects: ExportItem[],
-    onSuccess: () => void,
-    onError: (error: OTLPExporterError) => void
-  ): void {
-    const promise = new Promise<void>((resolve, reject) => {
-      this._send(this, objects, this.compression, resolve, reject);
-    }).then(onSuccess, onError);
-
-    this._sendingPromises.push(promise);
-    const popPromise = () => {
-      const index = this._sendingPromises.indexOf(promise);
-      this._sendingPromises.splice(index, 1);
-    };
-    promise.then(popPromise, popPromise);
+    this._converter = converter;
+    this._serviceClientType = serviceClientType;
   }
 
   override send(
     objects: ExportItem[],
-    onSuccess: () => void,
+    onSuccess: (response?: ServiceResponse) => void,
     onError: (error: OTLPExporterError) => void
   ): void {
     if (this._shutdownOnce.isCalled) {
@@ -75,14 +70,34 @@ export abstract class OTLPProtoExporterNodeBase<
       // and making this impossible to be instrumented
       setImmediate(() => {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const { send } = require('./util');
-        this._send = send;
-        this._sendPromise(objects, onSuccess, onError);
+        const { sendAsync } = require('./transport-util');
+        this._send = sendAsync;
+        const promise = this._send(
+          this,
+          this._serviceClientType,
+          this._converter(objects),
+          onSuccess,
+          onError
+        );
+        this.sendingQueue.pushPromise(promise);
       });
     } else {
-      this._sendPromise(objects, onSuccess, onError);
+      const promise = this._send(
+        this,
+        this._serviceClientType,
+        this._converter(objects),
+        onSuccess,
+        onError
+      );
+      this.sendingQueue.pushPromise(promise);
     }
   }
 
-  abstract getServiceClientType(): ServiceClientType;
+  convert(objects: ExportItem[]): ServiceRequest {
+    return this._converter(objects);
+  }
+
+  getServiceClientType(): ServiceClientType {
+    return this._serviceClientType;
+  }
 }

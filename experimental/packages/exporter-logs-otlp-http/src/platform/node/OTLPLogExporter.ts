@@ -21,7 +21,7 @@ import type {
 import type { OTLPExporterNodeConfigBase } from '@opentelemetry/otlp-exporter-base';
 import type { IExportLogsServiceRequest } from '@opentelemetry/otlp-transformer';
 import { getEnv, baggageUtils } from '@opentelemetry/core';
-import { OTLPExporterNodeBase } from '@opentelemetry/otlp-exporter-base';
+import { OTLPJsonExporterNodeBase } from '@opentelemetry/otlp-exporter-base';
 import { createExportLogsServiceRequest } from '@opentelemetry/otlp-transformer';
 
 import { getDefaultUrl } from '../config';
@@ -30,7 +30,7 @@ import { getDefaultUrl } from '../config';
  * Collector Logs Exporter for Node
  */
 export class OTLPLogExporter
-  extends OTLPExporterNodeBase<ReadableLogRecord, IExportLogsServiceRequest>
+  extends OTLPJsonExporterNodeBase<ReadableLogRecord, IExportLogsServiceRequest>
   implements LogRecordExporter
 {
   constructor(config: OTLPExporterNodeConfigBase = {}) {

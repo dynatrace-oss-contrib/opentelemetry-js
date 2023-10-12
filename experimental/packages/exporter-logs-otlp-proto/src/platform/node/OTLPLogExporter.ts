@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-import { getEnv, baggageUtils } from '@opentelemetry/core';
+import { baggageUtils, getEnv } from '@opentelemetry/core';
 import {
-  OTLPExporterConfigBase,
   appendResourcePathToUrl,
   appendRootPathToUrlIfNeeded,
+  OTLPExporterConfigBase,
 } from '@opentelemetry/otlp-exporter-base';
 import {
   OTLPProtoExporterNodeBase,
@@ -27,9 +27,10 @@ import {
 import {
   createExportLogsServiceRequest,
   IExportLogsServiceRequest,
+  IExportMetricsServiceResponse,
 } from '@opentelemetry/otlp-transformer';
 
-import { ReadableLogRecord, LogRecordExporter } from '@opentelemetry/sdk-logs';
+import { LogRecordExporter, ReadableLogRecord } from '@opentelemetry/sdk-logs';
 
 const DEFAULT_COLLECTOR_RESOURCE_PATH = 'v1/logs';
 const DEFAULT_COLLECTOR_URL = `http://localhost:4318/${DEFAULT_COLLECTOR_RESOURCE_PATH}`;
@@ -40,21 +41,19 @@ const DEFAULT_COLLECTOR_URL = `http://localhost:4318/${DEFAULT_COLLECTOR_RESOURC
 export class OTLPLogExporter
   extends OTLPProtoExporterNodeBase<
     ReadableLogRecord,
-    IExportLogsServiceRequest
+    IExportLogsServiceRequest,
+    IExportMetricsServiceResponse
   >
   implements LogRecordExporter
 {
   constructor(config: OTLPExporterConfigBase = {}) {
-    super(config);
+    super(config, ServiceClientType.LOGS, createExportLogsServiceRequest);
     this.headers = Object.assign(
       this.headers,
       baggageUtils.parseKeyPairsIntoRecord(
         getEnv().OTEL_EXPORTER_OTLP_LOGS_HEADERS
       )
     );
-  }
-  convert(logs: ReadableLogRecord[]): IExportLogsServiceRequest {
-    return createExportLogsServiceRequest(logs);
   }
 
   getDefaultUrl(config: OTLPExporterConfigBase): string {
@@ -68,9 +67,5 @@ export class OTLPLogExporter
           DEFAULT_COLLECTOR_RESOURCE_PATH
         )
       : DEFAULT_COLLECTOR_URL;
-  }
-
-  getServiceClientType() {
-    return ServiceClientType.LOGS;
   }
 }

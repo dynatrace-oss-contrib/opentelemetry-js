@@ -17,13 +17,13 @@
 import { diag } from '@opentelemetry/api';
 import { ServiceClientType } from '../types';
 import {
-  OTLPExporterBrowserBase as OTLPExporterBaseMain,
+  OTLPHttpExporterBrowserBase as OTLPExporterBaseMain,
   OTLPExporterError,
   OTLPExporterConfigBase,
   sendWithXhr,
 } from '@opentelemetry/otlp-exporter-base';
 
-import { getExportRequestProto } from '../util';
+import {deserializeItems, serializeItems} from '../serialization-util';
 
 /**
  * Collector Exporter abstract base class
@@ -31,6 +31,7 @@ import { getExportRequestProto } from '../util';
 export abstract class OTLPProtoExporterBrowserBase<
   ExportItem,
   ServiceRequest,
+  ServiceResponse,
 > extends OTLPExporterBaseMain<ExportItem, ServiceRequest> {
   constructor(config: OTLPExporterConfigBase = {}) {
     super(config);
@@ -38,7 +39,7 @@ export abstract class OTLPProtoExporterBrowserBase<
 
   override send(
     objects: ExportItem[],
-    onSuccess: () => void,
+    onSuccess: (response?: ServiceResponse) => void,
     onError: (error: OTLPExporterError) => void
   ): void {
     if (this._shutdownOnce.isCalled) {
@@ -47,27 +48,37 @@ export abstract class OTLPProtoExporterBrowserBase<
     }
 
     const serviceRequest = this.convert(objects);
-    const exportRequestType = getExportRequestProto(
-      this.getServiceClientType()
-    );
-    const message = exportRequestType.create(serviceRequest);
+    const body = serializeItems(this.getServiceClientType(), serviceRequest);
 
-    if (message) {
-      const body = exportRequestType.encode(message).finish();
-      if (body) {
-        sendWithXhr(
-          new Blob([body], { type: 'application/x-protobuf' }),
-          this.url,
-          {
-            ...this._headers,
-            'Content-Type': 'application/x-protobuf',
-            Accept: 'application/x-protobuf',
-          },
-          this.timeoutMillis,
-          onSuccess,
-          onError
-        );
-      }
+    if (body) {
+      sendWithXhr(
+        new Blob([body], { type: 'application/x-protobuf' }),
+        this.url,
+        {
+          ...this._headers,
+          'Content-Type': 'application/x-protobuf',
+          Accept: 'application/x-protobuf',
+        },
+        this.timeoutMillis,
+        response => {
+          if (response.contentType === 'application/x-protobuf') {
+            try {
+              if (response) {
+                const serviceResponse = deserializeItems(
+                  this.getServiceClientType(),
+                  response.data
+                );
+                const stringResponse = JSON.stringify(serviceResponse);
+                diag.warn(stringResponse);
+              }
+            } catch (err) {
+              diag.warn(err);
+            }
+          }
+          onSuccess();
+        },
+        onError
+      );
     } else {
       onError(new OTLPExporterError('No proto'));
     }

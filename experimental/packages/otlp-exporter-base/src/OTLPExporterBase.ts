@@ -26,6 +26,7 @@ import {
   ExportServiceError,
 } from './types';
 import { configureExporterTimeout } from './util';
+import { ExportPromiseQueue } from './export-promise-queue';
 
 /**
  * Collector Exporter abstract base class
@@ -38,9 +39,8 @@ export abstract class OTLPExporterBase<
   public readonly url: string;
   public readonly hostname: string | undefined;
   public readonly timeoutMillis: number;
-  protected _concurrencyLimit: number;
-  protected _sendingPromises: Promise<unknown>[] = [];
   protected _shutdownOnce: BindOnceFuture<void>;
+  protected sendingQueue: ExportPromiseQueue;
 
   /**
    * @param config
@@ -54,15 +54,14 @@ export abstract class OTLPExporterBase<
     this.shutdown = this.shutdown.bind(this);
     this._shutdownOnce = new BindOnceFuture(this._shutdown, this);
 
-    this._concurrencyLimit =
+    const concurrencyLimit =
       typeof config.concurrencyLimit === 'number'
         ? config.concurrencyLimit
         : Infinity;
 
-    this.timeoutMillis = configureExporterTimeout(config.timeoutMillis);
+    this.sendingQueue = new ExportPromiseQueue(concurrencyLimit);
 
-    // platform dependent
-    this.onInit(config);
+    this.timeoutMillis = configureExporterTimeout(config.timeoutMillis);
   }
 
   /**
@@ -82,7 +81,7 @@ export abstract class OTLPExporterBase<
       return;
     }
 
-    if (this._sendingPromises.length >= this._concurrencyLimit) {
+    if (this.sendingQueue.hasReachedLimit()) {
       resultCallback({
         code: ExportResultCode.FAILED,
         error: new Error('Concurrent export limit reached'),
@@ -121,9 +120,7 @@ export abstract class OTLPExporterBase<
    * Exports any pending spans in the exporter
    */
   forceFlush(): Promise<void> {
-    return Promise.all(this._sendingPromises).then(() => {
-      /** ignore resolved values */
-    });
+    return this.sendingQueue.awaitAll();
   }
 
   /**
@@ -136,7 +133,6 @@ export abstract class OTLPExporterBase<
   }
 
   abstract onShutdown(): void;
-  abstract onInit(config: T): void;
   abstract send(
     items: ExportItem[],
     onSuccess: () => void,

@@ -27,6 +27,7 @@ import {
 import {
   createExportLogsServiceRequest,
   IExportLogsServiceRequest,
+  IExportLogsServiceResponse,
 } from '@opentelemetry/otlp-transformer';
 
 import { ReadableLogRecord, LogRecordExporter } from '@opentelemetry/sdk-logs';
@@ -40,7 +41,8 @@ const DEFAULT_COLLECTOR_URL = `http://localhost:4318/${DEFAULT_COLLECTOR_RESOURC
 export class OTLPLogExporter
   extends OTLPProtoExporterBrowserBase<
     ReadableLogRecord,
-    IExportLogsServiceRequest
+    IExportLogsServiceRequest,
+    IExportLogsServiceResponse
   >
   implements LogRecordExporter
 {

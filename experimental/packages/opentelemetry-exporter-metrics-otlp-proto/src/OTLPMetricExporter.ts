@@ -14,22 +14,25 @@
  * limitations under the License.
  */
 
-import { OTLPMetricExporterOptions } from '@opentelemetry/exporter-metrics-otlp-http';
 import {
-  ServiceClientType,
+  OTLPMetricExporterBase,
+  OTLPMetricExporterOptions,
+} from '@opentelemetry/exporter-metrics-otlp-http';
+import {
   OTLPProtoExporterNodeBase,
+  ServiceClientType,
 } from '@opentelemetry/otlp-proto-exporter-base';
-import { getEnv, baggageUtils } from '@opentelemetry/core';
+import { baggageUtils, getEnv } from '@opentelemetry/core';
 import { ResourceMetrics } from '@opentelemetry/sdk-metrics';
-import { OTLPMetricExporterBase } from '@opentelemetry/exporter-metrics-otlp-http';
 import {
-  OTLPExporterNodeConfigBase,
   appendResourcePathToUrl,
   appendRootPathToUrlIfNeeded,
+  OTLPExporterNodeConfigBase,
 } from '@opentelemetry/otlp-exporter-base';
 import {
   createExportMetricsServiceRequest,
   IExportMetricsServiceRequest,
+  IExportMetricsServiceResponse,
 } from '@opentelemetry/otlp-transformer';
 import { VERSION } from './version';
 
@@ -41,10 +44,11 @@ const USER_AGENT = {
 
 class OTLPMetricExporterNodeProxy extends OTLPProtoExporterNodeBase<
   ResourceMetrics,
-  IExportMetricsServiceRequest
+  IExportMetricsServiceRequest,
+  IExportMetricsServiceResponse
 > {
   constructor(config?: OTLPExporterNodeConfigBase & OTLPMetricExporterOptions) {
-    super(config);
+    super(config, ServiceClientType.METRICS, createExportMetricsServiceRequest);
     this.headers = {
       ...this.headers,
       ...USER_AGENT,
@@ -52,10 +56,6 @@ class OTLPMetricExporterNodeProxy extends OTLPProtoExporterNodeBase<
         getEnv().OTEL_EXPORTER_OTLP_METRICS_HEADERS
       ),
     };
-  }
-
-  convert(metrics: ResourceMetrics[]): IExportMetricsServiceRequest {
-    return createExportMetricsServiceRequest(metrics);
   }
 
   getDefaultUrl(config: OTLPExporterNodeConfigBase) {
@@ -71,10 +71,6 @@ class OTLPMetricExporterNodeProxy extends OTLPProtoExporterNodeBase<
           DEFAULT_COLLECTOR_RESOURCE_PATH
         )
       : DEFAULT_COLLECTOR_URL;
-  }
-
-  getServiceClientType() {
-    return ServiceClientType.METRICS;
   }
 }
 

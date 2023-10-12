@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
-export { OTLPExporterNodeBase } from './OTLPExporterNodeBase';
-export { sendWithHttp, createHttpAgent, configureCompression } from './util';
+export { OTLPJsonExporterNodeBase } from './OTLPJsonExporterNodeBase';
+export { OTLPHttpExporterNodeBase } from './OTLPHttpExporterNodeBase';
+export {
+  sendWithHttp,
+  createHttpAgent,
+  responseType,
+  requestParams,
+} from './transport-util';
+export { configureCompression } from './config-utils';
 export { OTLPExporterNodeConfigBase, CompressionAlgorithm } from './types';

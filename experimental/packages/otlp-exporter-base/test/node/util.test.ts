@@ -16,13 +16,13 @@
 
 import * as assert from 'assert';
 import { configureExporterTimeout, invalidTimeout } from '../../src/util';
-import { sendWithHttp } from '../../src/platform/node/util';
+import { sendWithHttp } from '../../src/platform/node/transport-util';
 import { CompressionAlgorithm } from '../../src/platform/node/types';
-import { configureCompression } from '../../src/platform/node/util';
+import { configureCompression } from '../../src/platform/node/config-utils';
 import { diag } from '@opentelemetry/api';
 import * as sinon from 'sinon';
 
-import { OTLPExporterNodeBase } from '../../src/platform/node/OTLPExporterNodeBase';
+import { OTLPJsonExporterNodeBase } from '../../src/platform/node/OTLPJsonExporterNodeBase';
 import { OTLPExporterNodeConfigBase } from '../../src/platform/node/types';
 import { OTLPExporterError } from '../../src/types';
 import { PassThrough } from 'stream';
@@ -50,7 +50,7 @@ class HttpRequest extends PassThrough {
 
 // Barebones exporter for use by sendWithHttp
 type ExporterConfig = OTLPExporterNodeConfigBase;
-class Exporter extends OTLPExporterNodeBase<object, object> {
+class Exporter extends OTLPJsonExporterNodeBase<object, object> {
   getDefaultUrl(config: ExporterConfig): string {
     return config.url || '';
   }

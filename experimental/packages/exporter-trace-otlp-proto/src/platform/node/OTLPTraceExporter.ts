@@ -15,11 +15,11 @@
  */
 
 import { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base';
-import { getEnv, baggageUtils } from '@opentelemetry/core';
+import { baggageUtils, getEnv } from '@opentelemetry/core';
 import {
-  OTLPExporterNodeConfigBase,
   appendResourcePathToUrl,
   appendRootPathToUrlIfNeeded,
+  OTLPExporterNodeConfigBase,
 } from '@opentelemetry/otlp-exporter-base';
 import {
   OTLPProtoExporterNodeBase,
@@ -28,6 +28,7 @@ import {
 import {
   createExportTraceServiceRequest,
   IExportTraceServiceRequest,
+  IExportTraceServiceResponse,
 } from '@opentelemetry/otlp-transformer';
 import { VERSION } from '../../version';
 
@@ -41,11 +42,15 @@ const USER_AGENT = {
  * Collector Trace Exporter for Node with protobuf
  */
 export class OTLPTraceExporter
-  extends OTLPProtoExporterNodeBase<ReadableSpan, IExportTraceServiceRequest>
+  extends OTLPProtoExporterNodeBase<
+    ReadableSpan,
+    IExportTraceServiceRequest,
+    IExportTraceServiceResponse
+  >
   implements SpanExporter
 {
   constructor(config: OTLPExporterNodeConfigBase = {}) {
-    super(config);
+    super(config, ServiceClientType.SPANS, createExportTraceServiceRequest);
     this.headers = {
       ...this.headers,
       ...USER_AGENT,
@@ -53,10 +58,6 @@ export class OTLPTraceExporter
         getEnv().OTEL_EXPORTER_OTLP_TRACES_HEADERS
       ),
     };
-  }
-
-  convert(spans: ReadableSpan[]): IExportTraceServiceRequest {
-    return createExportTraceServiceRequest(spans);
   }
 
   getDefaultUrl(config: OTLPExporterNodeConfigBase) {
@@ -70,9 +71,5 @@ export class OTLPTraceExporter
           DEFAULT_COLLECTOR_RESOURCE_PATH
         )
       : DEFAULT_COLLECTOR_URL;
-  }
-
-  getServiceClientType() {
-    return ServiceClientType.SPANS;
   }
 }

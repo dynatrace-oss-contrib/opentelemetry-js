@@ -15,4 +15,3 @@
  */
 
 export { OTLPProtoExporterNodeBase } from './OTLPProtoExporterNodeBase';
-export { send } from './util';

@@ -20,7 +20,7 @@ import {
   OTLPExporterConfigBase,
   appendResourcePathToUrl,
   appendRootPathToUrlIfNeeded,
-  OTLPExporterBrowserBase,
+  OTLPJsonExporterBrowserBase,
 } from '@opentelemetry/otlp-exporter-base';
 import {
   createExportTraceServiceRequest,
@@ -34,7 +34,7 @@ const DEFAULT_COLLECTOR_URL = `http://localhost:4318/${DEFAULT_COLLECTOR_RESOURC
  * Collector Trace Exporter for Web
  */
 export class OTLPTraceExporter
-  extends OTLPExporterBrowserBase<ReadableSpan, IExportTraceServiceRequest>
+  extends OTLPJsonExporterBrowserBase<ReadableSpan, IExportTraceServiceRequest>
   implements SpanExporter
 {
   constructor(config: OTLPExporterConfigBase = {}) {

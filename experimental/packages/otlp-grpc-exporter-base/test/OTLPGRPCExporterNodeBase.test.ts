@@ -86,14 +86,22 @@ describe('OTLPGRPCExporterNodeBase', () => {
         exporter.export(spans, () => {});
       }
 
-      assert.strictEqual(exporter['_sendingPromises'].length, numToExport);
-      const promisesAllDone = Promise.all(exporter['_sendingPromises']);
+      assert.strictEqual(
+        exporter['sendingQueue']['_sendingPromises'].length,
+        numToExport
+      );
+      const promisesAllDone = Promise.all(
+        exporter['sendingQueue']['_sendingPromises']
+      );
       // Mock that all requests finish sending
       exporter.sendCallbacks.forEach(({ onSuccess }) => onSuccess());
 
       // All finished promises should be popped off
       await promisesAllDone;
-      assert.strictEqual(exporter['_sendingPromises'].length, 0);
+      assert.strictEqual(
+        exporter['sendingQueue']['_sendingPromises'].length,
+        0
+      );
     });
 
     it('should drop new export requests when already sending at concurrencyLimit', async () => {
@@ -104,22 +112,35 @@ describe('OTLPGRPCExporterNodeBase', () => {
         exporter.export(spans, () => {});
       }
 
-      assert.strictEqual(exporter['_sendingPromises'].length, concurrencyLimit);
-      const promisesAllDone = Promise.all(exporter['_sendingPromises']);
+      assert.strictEqual(
+        exporter['sendingQueue']['_sendingPromises'].length,
+        concurrencyLimit
+      );
+      const promisesAllDone = Promise.all(
+        exporter['sendingQueue']['_sendingPromises']
+      );
       // Mock that all requests finish sending
       exporter.sendCallbacks.forEach(({ onSuccess }) => onSuccess());
 
       // All finished promises should be popped off
       await promisesAllDone;
-      assert.strictEqual(exporter['_sendingPromises'].length, 0);
+      assert.strictEqual(
+        exporter['sendingQueue']['_sendingPromises'].length,
+        0
+      );
     });
 
     it('should pop export request promises even if they failed', async () => {
       const spans = [Object.assign({}, mockedReadableSpan)];
 
       exporter.export(spans, () => {});
-      assert.strictEqual(exporter['_sendingPromises'].length, 1);
-      const promisesAllDone = Promise.all(exporter['_sendingPromises']);
+      assert.strictEqual(
+        exporter['sendingQueue']['_sendingPromises'].length,
+        1
+      );
+      const promisesAllDone = Promise.all(
+        exporter['sendingQueue']['_sendingPromises']
+      );
       // Mock that all requests fail sending
       exporter.sendCallbacks.forEach(({ onError }) =>
         onError(new Error('Failed to send!!'))
@@ -127,7 +148,10 @@ describe('OTLPGRPCExporterNodeBase', () => {
 
       // All finished promises should be popped off
       await promisesAllDone;
-      assert.strictEqual(exporter['_sendingPromises'].length, 0);
+      assert.strictEqual(
+        exporter['sendingQueue']['_sendingPromises'].length,
+        0
+      );
     });
 
     it('should pop export request promises even if success callback throws error', async () => {
@@ -141,8 +165,13 @@ describe('OTLPGRPCExporterNodeBase', () => {
         () => {}
       );
 
-      assert.strictEqual(exporter['_sendingPromises'].length, 1);
-      const promisesAllDone = Promise.all(exporter['_sendingPromises'])
+      assert.strictEqual(
+        exporter['sendingQueue']['_sendingPromises'].length,
+        1
+      );
+      const promisesAllDone = Promise.all(
+        exporter['sendingQueue']['_sendingPromises']
+      )
         // catch expected unhandled exception
         .catch(() => {});
 
@@ -153,7 +182,10 @@ describe('OTLPGRPCExporterNodeBase', () => {
 
       // All finished promises should be popped off
       await promisesAllDone;
-      assert.strictEqual(exporter['_sendingPromises'].length, 0);
+      assert.strictEqual(
+        exporter['sendingQueue']['_sendingPromises'].length,
+        0
+      );
     });
   });
 });

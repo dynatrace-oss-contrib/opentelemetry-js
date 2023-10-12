@@ -18,6 +18,7 @@ import { diag } from '@opentelemetry/api';
 import { ExportResultCode } from '@opentelemetry/core';
 import {
   getExportRequestProto,
+  getExportResponseProto,
   ServiceClientType,
 } from '@opentelemetry/otlp-proto-exporter-base';
 import * as assert from 'assert';
@@ -26,15 +27,15 @@ import * as sinon from 'sinon';
 import { OTLPMetricExporter } from '../src';
 
 import {
+  collect,
   ensureExportedCounterIsCorrect,
-  ensureExportedObservableGaugeIsCorrect,
   ensureExportedHistogramIsCorrect,
+  ensureExportedObservableGaugeIsCorrect,
   ensureExportMetricsServiceRequestIsSet,
   mockCounter,
   MockedResponse,
-  mockObservableGauge,
   mockHistogram,
-  collect,
+  mockObservableGauge,
   setUp,
   shutdown,
 } from './metricsHelper';
@@ -43,9 +44,12 @@ import {
   AggregationTemporalityPreference,
   OTLPMetricExporterOptions,
 } from '@opentelemetry/exporter-metrics-otlp-http';
-import { Stream, PassThrough } from 'stream';
+import { PassThrough, Stream } from 'stream';
 import { OTLPExporterNodeConfigBase } from '@opentelemetry/otlp-exporter-base';
-import { IExportMetricsServiceRequest } from '@opentelemetry/otlp-transformer';
+import {
+  IExportMetricsServiceRequest,
+  IExportMetricsServiceResponse,
+} from '@opentelemetry/otlp-transformer';
 import { VERSION } from '../src/version';
 
 let fakeRequest: PassThrough;
@@ -341,16 +345,35 @@ describe('OTLPMetricExporter - node with proto over http', () => {
 
     it('should log the error message', done => {
       collectorExporter.export(metrics, result => {
-        assert.strictEqual(result.code, ExportResultCode.FAILED);
-        // @ts-expect-error verify error code
-        assert.strictEqual(result.error.code, 400);
-        done();
+        let error = undefined;
+        try {
+          assert.strictEqual(result.code, ExportResultCode.FAILED);
+          // @ts-expect-error verify error code
+          assert.strictEqual(result.error.code, 400);
+          // @ts-expect-error verify data
+          assert.strictEqual(result.error.data, '\n\n\b\x1E\x12\x06broken');
+        } catch (e) {
+          error = e;
+        }
+        done(error);
       });
 
       sinon.stub(http, 'request').callsFake((options: any, cb: any) => {
         const mockResError = new MockedResponse(400);
         cb(mockResError);
-        mockResError.send('failed');
+
+        const proto = getExportResponseProto<IExportMetricsServiceResponse>(
+          ServiceClientType.METRICS
+        );
+
+        const resp = {
+          partialSuccess: {
+            errorMessage: 'broken',
+            rejectedDataPoints: 30,
+          },
+        };
+        const msg = proto.create(resp);
+        mockResError.send(proto.encode(msg).finish().toString());
 
         return fakeRequest as any;
       });

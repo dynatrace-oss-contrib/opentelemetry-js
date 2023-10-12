@@ -48,6 +48,11 @@ export function sendWithBeacon(
   }
 }
 
+export type XhrResponse = {
+  contentType: string;
+  data: Buffer;
+};
+
 /**
  * function to send metrics/spans using browser XMLHttpRequest
  *     used when navigator.sendBeacon is not available
@@ -62,7 +67,7 @@ export function sendWithXhr(
   url: string,
   headers: Record<string, string>,
   exporterTimeout: number,
-  onSuccess: () => void,
+  onSuccess: (response: XhrResponse) => void,
   onError: (error: OTLPExporterError) => void
 ): void {
   let retryTimer: ReturnType<typeof setTimeout>;
@@ -103,10 +108,15 @@ export function sendWithXhr(
     xhr.send(body);
 
     xhr.onreadystatechange = () => {
-      if (xhr.readyState === XMLHttpRequest.DONE && reqIsDestroyed === false) {
+      if (xhr.readyState === XMLHttpRequest.DONE && !reqIsDestroyed) {
         if (xhr.status >= 200 && xhr.status <= 299) {
           diag.debug('xhr success', body);
-          onSuccess();
+          xhr.responseType = 'arraybuffer';
+          const response = xhr.response as ArrayBuffer;
+          onSuccess({
+            contentType: xhr.getResponseHeader('content-type') ?? '',
+            data: Buffer.from(response),
+          });
           clearTimeout(exporterTimer);
           clearTimeout(retryTimer);
         } else if (xhr.status && isExportRetryable(xhr.status) && retries > 0) {

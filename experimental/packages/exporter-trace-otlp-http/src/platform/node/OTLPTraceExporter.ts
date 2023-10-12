@@ -16,7 +16,7 @@
 
 import { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base';
 import { getEnv, baggageUtils } from '@opentelemetry/core';
-import { OTLPExporterNodeBase } from '@opentelemetry/otlp-exporter-base';
+import { OTLPJsonExporterNodeBase } from '@opentelemetry/otlp-exporter-base';
 import {
   OTLPExporterNodeConfigBase,
   appendResourcePathToUrl,
@@ -38,7 +38,7 @@ const USER_AGENT = {
  * Collector Trace Exporter for Node
  */
 export class OTLPTraceExporter
-  extends OTLPExporterNodeBase<ReadableSpan, IExportTraceServiceRequest>
+  extends OTLPJsonExporterNodeBase<ReadableSpan, IExportTraceServiceRequest>
   implements SpanExporter
 {
   constructor(config: OTLPExporterNodeConfigBase = {}) {

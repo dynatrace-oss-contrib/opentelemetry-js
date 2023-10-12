@@ -14,5 +14,6 @@
  * limitations under the License.
  */
 
-export { OTLPExporterBrowserBase } from './OTLPExporterBrowserBase';
-export { sendWithXhr } from './util';
+export { OTLPJsonExporterBrowserBase } from './OTLPJsonExporterBrowserBase';
+export { OTLPHttpExporterBrowserBase } from './OTLPHttpExporterBrowserBase';
+export { sendWithXhr } from './transport-util';

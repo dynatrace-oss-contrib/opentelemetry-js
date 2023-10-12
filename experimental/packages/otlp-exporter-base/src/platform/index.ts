@@ -15,11 +15,17 @@
  */
 
 export {
-  OTLPExporterNodeBase,
+  OTLPJsonExporterNodeBase,
+  OTLPHttpExporterNodeBase,
   sendWithHttp,
   createHttpAgent,
   configureCompression,
   OTLPExporterNodeConfigBase,
   CompressionAlgorithm,
+  requestParams,
 } from './node';
-export { OTLPExporterBrowserBase, sendWithXhr } from './browser';
+export {
+  OTLPJsonExporterBrowserBase,
+  OTLPHttpExporterBrowserBase,
+  sendWithXhr,
+} from './browser';

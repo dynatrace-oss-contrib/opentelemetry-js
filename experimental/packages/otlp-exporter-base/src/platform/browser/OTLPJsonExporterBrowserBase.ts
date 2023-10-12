@@ -14,50 +14,24 @@
  * limitations under the License.
  */
 
-import { OTLPExporterBase } from '../../OTLPExporterBase';
 import { OTLPExporterConfigBase } from '../../types';
 import * as otlpTypes from '../../types';
-import { parseHeaders } from '../../util';
-import { sendWithBeacon, sendWithXhr } from './util';
+import { sendWithBeacon, sendWithXhr } from './transport-util';
 import { diag } from '@opentelemetry/api';
-import { getEnv, baggageUtils } from '@opentelemetry/core';
+import { OTLPHttpExporterBrowserBase } from './OTLPHttpExporterBrowserBase';
 
 /**
- * Collector Metric Exporter abstract base class
+ * OTLP JSON Exporter abstract base class
  */
-export abstract class OTLPExporterBrowserBase<
+export abstract class OTLPJsonExporterBrowserBase<
   ExportItem,
   ServiceRequest,
-> extends OTLPExporterBase<OTLPExporterConfigBase, ExportItem, ServiceRequest> {
-  protected _headers: Record<string, string>;
-  private _useXHR: boolean = false;
-
+> extends OTLPHttpExporterBrowserBase<ExportItem, ServiceRequest> {
   /**
    * @param config
    */
   constructor(config: OTLPExporterConfigBase = {}) {
     super(config);
-    this._useXHR =
-      !!config.headers || typeof navigator.sendBeacon !== 'function';
-    if (this._useXHR) {
-      this._headers = Object.assign(
-        {},
-        parseHeaders(config.headers),
-        baggageUtils.parseKeyPairsIntoRecord(
-          getEnv().OTEL_EXPORTER_OTLP_HEADERS
-        )
-      );
-    } else {
-      this._headers = {};
-    }
-  }
-
-  onInit(): void {
-    window.addEventListener('unload', this.shutdown);
-  }
-
-  onShutdown(): void {
-    window.removeEventListener('unload', this.shutdown);
   }
 
   send(
@@ -79,7 +53,9 @@ export abstract class OTLPExporterBrowserBase<
           this.url,
           this._headers,
           this.timeoutMillis,
-          resolve,
+          () => {
+            resolve();
+          },
           reject
         );
       } else {
@@ -93,11 +69,6 @@ export abstract class OTLPExporterBrowserBase<
       }
     }).then(onSuccess, onError);
 
-    this._sendingPromises.push(promise);
-    const popPromise = () => {
-      const index = this._sendingPromises.indexOf(promise);
-      this._sendingPromises.splice(index, 1);
-    };
-    promise.then(popPromise, popPromise);
+    this.sendingQueue.pushPromise(promise);
   }
 }

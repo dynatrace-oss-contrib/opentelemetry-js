@@ -21,11 +21,18 @@ export class OTLPExporterError extends Error {
   readonly code?: number;
   override readonly name: string = 'OTLPExporterError';
   readonly data?: string;
+  readonly contentType?: string;
 
-  constructor(message?: string, code?: number, data?: string) {
+  constructor(
+    message?: string,
+    code?: number,
+    data?: string,
+    contentType?: string
+  ) {
     super(message);
     this.data = data;
     this.code = code;
+    this.contentType = contentType;
   }
 }
 
