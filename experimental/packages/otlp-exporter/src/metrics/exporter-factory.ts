@@ -22,6 +22,7 @@ import { OtlpProtoMetricsConfiguration } from './configuration/types';
 import { EnvironmentOtlpProtoMetricsConfigurationProvider } from './configuration/providers/environment';
 import { DefaultingOtlpProtoMetricsConfigurationProvider } from './configuration/providers/defaulting';
 import { createMetricsSerializer } from './serialization-utils';
+import { RetryingTransport } from '../common/retrying-transport';
 
 export function createNodeOtlpProtoExporter(
   options: Partial<OtlpProtoMetricsConfiguration>
@@ -40,9 +41,12 @@ export function createNodeOtlpProtoExporter(
     timeoutMillis: configuration.timeoutMillis,
     agentOptions: { keepAlive: true },
   });
+
+  const retryingTransport = new RetryingTransport(transport);
+
   const promiseQueue = new ExportPromiseQueue(configuration.concurrencyLimit);
   return new OTLPProtoMetricsExporter(
-    transport,
+    retryingTransport,
     createMetricsSerializer(),
     promiseQueue,
     configuration.temporalitySelector

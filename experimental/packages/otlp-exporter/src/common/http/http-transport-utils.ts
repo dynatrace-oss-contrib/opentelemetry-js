@@ -19,7 +19,6 @@ import * as zlib from 'zlib';
 import { Readable } from 'stream';
 import { IExportResponse, HttpRequestParameters } from './http-transport-types';
 
-export const DEFAULT_EXPORT_MAX_ATTEMPTS = 5;
 export const DEFAULT_EXPORT_INITIAL_BACKOFF = 1000;
 export const DEFAULT_EXPORT_MAX_BACKOFF = 5000;
 export const DEFAULT_EXPORT_BACKOFF_MULTIPLIER = 1.5;
@@ -29,10 +28,13 @@ function isExportRetryable(statusCode: number): boolean {
   return retryCodes.includes(statusCode);
 }
 
-function parseRetryAfterToMills(retryAfter?: string | null): number {
+function parseRetryAfterToMills(
+  retryAfter?: string | undefined
+): number | undefined {
   if (retryAfter == null) {
-    return -1;
+    return undefined;
   }
+
   const seconds = Number.parseInt(retryAfter, 10);
   if (Number.isInteger(seconds)) {
     return seconds > 0 ? seconds * 1000 : -1;
@@ -51,35 +53,16 @@ function parseRetryAfterToMills(retryAfter?: string | null): number {
  * @param params
  * @param agent
  * @param data
- * @param onSuccess
- * @param onError
+ * @param onDone
  */
 export function sendWithHttp(
   params: HttpRequestParameters,
   agent: http.Agent | https.Agent,
   data: Buffer,
-  onSuccess: (response: IExportResponse) => void,
-  onError: (error: Error) => void
+  onDone: (response: IExportResponse) => void
 ): void {
-  const exporterTimeout = params.timeoutMillis;
   const parsedUrl = new URL(params.url);
   const nodeVersion = Number(process.versions.node.split('.')[0]);
-  let retryTimer: ReturnType<typeof setTimeout>;
-  let req: http.ClientRequest;
-  let reqIsDestroyed = false;
-
-  const exporterTimer = setTimeout(() => {
-    clearTimeout(retryTimer);
-    reqIsDestroyed = true;
-
-    if (req.destroyed) {
-      const err = new Error('Request Timeout');
-      onError(err);
-    } else {
-      // req.abort() was deprecated since v14
-      nodeVersion >= 14 ? req.destroy() : req.abort();
-    }
-  }, exporterTimeout);
 
   const options: http.RequestOptions | https.RequestOptions = {
     hostname: parsedUrl.hostname,
@@ -94,104 +77,74 @@ export function sendWithHttp(
 
   const request = parsedUrl.protocol === 'http:' ? http.request : https.request;
 
-  const sendWithRetry = (
-    retries = DEFAULT_EXPORT_MAX_ATTEMPTS,
-    minDelay = DEFAULT_EXPORT_INITIAL_BACKOFF
-  ) => {
-    req = request(options, (res: http.IncomingMessage) => {
-      const responseData: Buffer[] = [];
-      res.on('data', chunk => responseData.push(chunk));
+  const req = request(options, (res: http.IncomingMessage) => {
+    const responseData: Buffer[] = [];
+    res.on('data', chunk => responseData.push(chunk));
 
-      res.on('aborted', () => {
-        if (reqIsDestroyed) {
-          const err = new Error('Request Timeout');
-          onError(err);
-        }
-      });
-
-      res.on('end', () => {
-        if (reqIsDestroyed === false) {
-          if (res.statusCode && res.statusCode < 299) {
-            onSuccess({
-              status: 'success',
-              data: Buffer.concat(responseData),
-            });
-            // clear all timers since request was completed and promise was resolved
-            clearTimeout(exporterTimer);
-            clearTimeout(retryTimer);
-          } else if (
-            res.statusCode &&
-            isExportRetryable(res.statusCode) &&
-            retries > 0
-          ) {
-            let retryTime: number;
-            minDelay = DEFAULT_EXPORT_BACKOFF_MULTIPLIER * minDelay;
-
-            // retry after interval specified in Retry-After header
-            if (res.headers['retry-after']) {
-              retryTime = parseRetryAfterToMills(res.headers['retry-after']!);
-            } else {
-              // exponential backoff with jitter
-              retryTime = Math.round(
-                Math.random() * (DEFAULT_EXPORT_MAX_BACKOFF - minDelay) +
-                  minDelay
-              );
-            }
-
-            retryTimer = setTimeout(() => {
-              sendWithRetry(retries - 1, minDelay);
-            }, retryTime);
-          } else {
-            const error = new Error(
-              `${res.statusMessage} + ${res.statusCode} + ${responseData}`
-            );
-            onError(error);
-            // clear all timers since request was completed and promise was resolved
-            clearTimeout(exporterTimer);
-            clearTimeout(retryTimer);
-          }
-        }
-      });
-    });
-
-    req.on('error', (error: Error | any) => {
-      if (reqIsDestroyed) {
-        const err = new Error('Request Timeout');
-        onError(err);
+    res.on('end', () => {
+      if (res.statusCode && res.statusCode < 299) {
+        onDone({
+          status: 'success',
+          data: Buffer.concat(responseData),
+        });
+      } else if (res.statusCode && isExportRetryable(res.statusCode)) {
+        onDone({
+          status: 'retryable',
+          retryInMillis: parseRetryAfterToMills(res.headers['retry-after']),
+        });
       } else {
-        onError(error);
+        const error = new Error(
+          `${res.statusMessage} + ${res.statusCode} + ${responseData}`
+        );
+        onDone({
+          status: 'failure',
+          error,
+        });
       }
-      clearTimeout(exporterTimer);
-      clearTimeout(retryTimer);
     });
+  });
 
-    req.on('abort', () => {
-      if (reqIsDestroyed) {
-        const err = new Error('Request Timeout');
-        onError(err);
-      }
-      clearTimeout(exporterTimer);
-      clearTimeout(retryTimer);
+  req.setTimeout(params.timeoutMillis);
+  req.on('error', (error: Error | any) => {
+    onDone({
+      status: 'failure',
+      error: error,
     });
+  });
 
-    switch (params.compression) {
-      case 'gzip': {
-        req.setHeader('Content-Encoding', 'gzip');
-        const dataStream = readableFromBuffer(data);
-        dataStream
-          .on('error', onError)
-          .pipe(zlib.createGzip())
-          .on('error', onError)
-          .pipe(req);
+  const reportTimeoutErrorEvent = nodeVersion >= 14 ? 'close' : 'abort';
+  req.on(reportTimeoutErrorEvent, () => {
+    onDone({
+      status: 'failure',
+      error: new Error('Request timed out'),
+    });
+  });
 
-        break;
-      }
-      default:
-        req.end(data);
-        break;
-    }
-  };
-  sendWithRetry();
+  compressAndSend(req, params.compression, data, (error: Error) => {
+    onDone({
+      status: 'failure',
+      error,
+    });
+  });
+}
+
+function compressAndSend(
+  req: http.ClientRequest,
+  compression: 'gzip' | 'none',
+  data: Buffer,
+  onError: (error: Error) => void
+) {
+  let dataStream = readableFromBuffer(data);
+
+  if (compression === 'gzip') {
+    req.setHeader('Content-Encoding', 'gzip');
+    dataStream = dataStream
+      .on('error', onError)
+      .pipe(zlib.createGzip())
+      .on('error', onError);
+  }
+
+  dataStream.pipe(req);
 }
 
 function readableFromBuffer(buff: string | Buffer): Readable {

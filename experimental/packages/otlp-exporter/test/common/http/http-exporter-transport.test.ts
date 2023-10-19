@@ -89,6 +89,8 @@ describe('HttpExporterTransport', function () {
       exporterTransport.send(Buffer.from(expectedData)).then(
         result => {
           try {
+            assert.deepEqual(result.status, 'success');
+            assert.ok(result.data);
             assert.deepEqual([...result.data], expectedResponse);
             done();
           } catch (err) {
@@ -141,6 +143,8 @@ describe('HttpExporterTransport', function () {
       exporterTransport.send(Buffer.from(expectedData)).then(
         result => {
           try {
+            assert.deepEqual(result.status, 'success');
+            assert.ok(result.data);
             assert.deepEqual([...result.data], expectedResponse);
             done();
           } catch (err) {

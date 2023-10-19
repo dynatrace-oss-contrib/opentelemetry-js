@@ -21,8 +21,7 @@ export type sendWithHttp = (
   params: HttpRequestParameters,
   agent: http.Agent | https.Agent,
   data: Buffer,
-  onSuccess: (response: IExportResponse) => void,
-  onError: (error: Error) => void
+  onDone: (response: IExportResponse) => void
 ) => void;
 
 export interface HttpRequestParameters {
@@ -34,6 +33,8 @@ export interface HttpRequestParameters {
 }
 
 export interface IExportResponse {
-  status: 'client-error' | 'success' | 'failure';
-  data: Buffer;
+  status: 'success' | 'failure' | 'retryable';
+  data?: Buffer;
+  retryInMillis?: number;
+  error?: Error;
 }

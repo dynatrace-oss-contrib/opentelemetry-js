@@ -1,0 +1,56 @@
+/*
+ * Copyright The OpenTelemetry Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { IExporterTransport } from './exporter-transport';
+import { IExportResponse } from './http/http-transport-types';
+
+const MAX_ATTEMPTS = 5;
+const INITIAL_BACKOFF = 1000;
+const MAX_BACKOFF = 5000;
+const BACKOFF_MULTIPLIER = 1.5;
+
+/**
+ * Exporter Transport that retries on 'retryable' response.
+ */
+export class RetryingTransport implements IExporterTransport {
+  constructor(private _transport: IExporterTransport) {}
+
+  private retry(buffer: Buffer, inMillis: number): Promise<IExportResponse> {
+    return new Promise((resolve, reject) => {
+      // TODO: unref this timer? I'd say yes, because shutdown() should be called if waiting is desired.
+      setTimeout(() => {
+        this._transport.send(buffer).then(resolve, reject);
+      }, inMillis);
+    });
+  }
+
+  async send(buffer: Buffer): Promise<IExportResponse> {
+    let result = await this._transport.send(buffer);
+    let attempts = MAX_ATTEMPTS;
+    let nextBackoff = INITIAL_BACKOFF;
+
+    // TODO: I'm not sure this is correct, someone needs review this in-depth.
+    while (result.status === 'retryable' && attempts > 0) {
+      attempts--;
+      const upperBound = Math.min(nextBackoff, MAX_BACKOFF);
+      const backoff = Math.random() * upperBound;
+      nextBackoff = nextBackoff * BACKOFF_MULTIPLIER;
+      result = await this.retry(buffer, result.retryInMillis ?? backoff);
+    }
+
+    return result;
+  }
+}

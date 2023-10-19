@@ -335,6 +335,8 @@ describe('OTLPProtoMetricsExporter', function () {
       });
     });
 
+    // TODO: test that returning failure from transprot returns failure here
+
     it('returns failure when send rejects', function (done) {
       const transportStubs = {
         // make transport reject

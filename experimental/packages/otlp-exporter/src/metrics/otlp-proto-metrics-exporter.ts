@@ -64,22 +64,33 @@ export class OTLPProtoMetricsExporter implements PushMetricExporter {
     this._promiseQueue.pushPromise(
       this._transport.send(Buffer.from(serializedRequest)).then(
         response => {
-          try {
-            const metricsResponse = this._serializer.deserializeResponse(
-              response.data
-            );
-            if (metricsResponse.partialSuccess != null) {
-              diag.warn(
-                `Export succeeded partially, rejected data points: ${metricsResponse.partialSuccess.rejectedDataPoints}, message:\n${metricsResponse.partialSuccess.errorMessage}`
+          if (response.data) {
+            try {
+              const metricsResponse = this._serializer.deserializeResponse(
+                response.data
               );
+              if (metricsResponse.partialSuccess != null) {
+                diag.warn(
+                  `Export succeeded partially, rejected data points: ${metricsResponse.partialSuccess.rejectedDataPoints}, message:\n${metricsResponse.partialSuccess.errorMessage}`
+                );
+              }
+            } catch (err) {
+              diag.error('Invalid response from remote', err);
             }
-          } catch (err) {
-            diag.error('Invalid response from remote', err);
           }
 
-          // Even if we cannot deserialize the response, we can consider the export still successful.
+          if (response.status === 'success') {
+            // No matter the response, we can consider the export still successful.
+            resultCallback({
+              code: ExportResultCode.SUCCESS,
+            });
+            return;
+          }
+
+          // Other responses may not reject, but still indicate failure.
           resultCallback({
-            code: ExportResultCode.SUCCESS,
+            code: ExportResultCode.FAILED,
+            error: response.error,
           });
         },
         reason =>
