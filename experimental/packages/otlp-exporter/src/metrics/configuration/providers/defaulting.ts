@@ -49,6 +49,7 @@ export class DefaultingOtlpProtoMetricsConfigurationProvider
   }
 
   private determineHeaders(): Record<string, string> {
+    // TODO: require accept, content-type?
     const requiredHeaders = {
       'User-Agent': `OTel-OTLP-Exporter-JavaScript/${VERSION}`,
     };

@@ -15,7 +15,7 @@
  */
 
 import * as assert from 'assert';
-import { HttpExporterTransport } from '../../../src/common/http/http-exporter-transport';
+import { HttpExporterTransport } from '../../../src/common/http/node/http-exporter-transport';
 import * as sinon from 'sinon';
 import * as http from 'http';
 import { Stream } from 'stream';

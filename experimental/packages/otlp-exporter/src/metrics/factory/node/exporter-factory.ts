@@ -15,14 +15,14 @@
  */
 
 import { PushMetricExporter } from '@opentelemetry/sdk-metrics';
-import { OTLPProtoMetricsExporter } from './otlp-proto-metrics-exporter';
-import { HttpExporterTransport } from '../common/http/http-exporter-transport';
-import { ExportPromiseQueue } from '../common/export-promise-queue';
-import { OtlpProtoMetricsConfiguration } from './configuration/types';
-import { EnvironmentOtlpProtoMetricsConfigurationProvider } from './configuration/providers/environment';
-import { DefaultingOtlpProtoMetricsConfigurationProvider } from './configuration/providers/defaulting';
-import { createMetricsSerializer } from './serialization-utils';
-import { RetryingTransport } from '../common/retrying-transport';
+import { OTLPProtoMetricsExporter } from '../../otlp-proto-metrics-exporter';
+import { HttpExporterTransport } from '../../../common/http/node/http-exporter-transport';
+import { ExportPromiseQueue } from '../../../common/export-promise-queue';
+import { OtlpProtoMetricsConfiguration } from '../../configuration/types';
+import { EnvironmentOtlpProtoMetricsConfigurationProvider } from '../../configuration/providers/environment';
+import { DefaultingOtlpProtoMetricsConfigurationProvider } from '../../configuration/providers/defaulting';
+import { createMetricsSerializer } from '../../serialization-utils';
+import { RetryingTransport } from '../../../common/retrying-transport';
 
 export function createNodeOtlpProtoExporter(
   options: Partial<OtlpProtoMetricsConfiguration>

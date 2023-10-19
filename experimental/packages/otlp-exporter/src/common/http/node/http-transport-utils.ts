@@ -17,36 +17,15 @@ import * as http from 'http';
 import * as https from 'https';
 import * as zlib from 'zlib';
 import { Readable } from 'stream';
-import { IExportResponse, HttpRequestParameters } from './http-transport-types';
+import {
+  IExportResponse,
+  HttpRequestParameters,
+} from '../http-transport-types';
+import {isExportRetryable, parseRetryAfterToMills} from '../is-export-retryable';
 
 export const DEFAULT_EXPORT_INITIAL_BACKOFF = 1000;
 export const DEFAULT_EXPORT_MAX_BACKOFF = 5000;
 export const DEFAULT_EXPORT_BACKOFF_MULTIPLIER = 1.5;
-
-function isExportRetryable(statusCode: number): boolean {
-  const retryCodes = [429, 502, 503, 504];
-  return retryCodes.includes(statusCode);
-}
-
-function parseRetryAfterToMills(
-  retryAfter?: string | undefined
-): number | undefined {
-  if (retryAfter == null) {
-    return undefined;
-  }
-
-  const seconds = Number.parseInt(retryAfter, 10);
-  if (Number.isInteger(seconds)) {
-    return seconds > 0 ? seconds * 1000 : -1;
-  }
-  // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Retry-After#directives
-  const delay = new Date(retryAfter).getTime() - Date.now();
-
-  if (delay >= 0) {
-    return delay;
-  }
-  return 0;
-}
 
 /**
  * Sends data using http

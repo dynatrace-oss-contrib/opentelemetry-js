@@ -17,8 +17,8 @@ import type {
   IExportResponse,
   HttpRequestParameters,
   sendWithHttp,
-} from './http-transport-types';
-import type { IExporterTransport } from '../exporter-transport';
+} from '../http-transport-types';
+import type { IExporterTransport } from '../../exporter-transport';
 
 // NOTE: do not change these type imports to actual imports. Doing so WILL break `@opentelemetry/instrumentation-http`,
 // as they'd be imported before the http/https modules can be wrapped.
