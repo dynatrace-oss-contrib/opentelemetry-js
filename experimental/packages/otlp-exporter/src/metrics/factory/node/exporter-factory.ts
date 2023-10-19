@@ -15,13 +15,13 @@
  */
 
 import { PushMetricExporter } from '@opentelemetry/sdk-metrics';
-import { OTLPProtoMetricsExporter } from '../../otlp-proto-metrics-exporter';
+import { OTLPHttpMetricsExporter } from '../../otlp-proto-metrics-exporter';
 import { HttpExporterTransport } from '../../../common/http/node/http-exporter-transport';
 import { ExportPromiseQueue } from '../../../common/export-promise-queue';
 import { OtlpProtoMetricsConfiguration } from '../../configuration/types';
 import { EnvironmentOtlpProtoMetricsConfigurationProvider } from '../../configuration/providers/environment';
 import { DefaultingOtlpProtoMetricsConfigurationProvider } from '../../configuration/providers/defaulting';
-import { createMetricsSerializer } from '../../serialization-utils';
+import { createMetricsSerializer } from '../../protobuf/serialization-utils';
 import { RetryingTransport } from '../../../common/retrying-transport';
 
 export function createNodeOtlpProtoExporter(
@@ -45,7 +45,7 @@ export function createNodeOtlpProtoExporter(
   const retryingTransport = new RetryingTransport(transport);
 
   const promiseQueue = new ExportPromiseQueue(configuration.concurrencyLimit);
-  return new OTLPProtoMetricsExporter(
+  return new OTLPHttpMetricsExporter(
     retryingTransport,
     createMetricsSerializer(),
     promiseQueue,

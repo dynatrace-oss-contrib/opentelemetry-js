@@ -15,9 +15,8 @@
  */
 
 import * as sinon from 'sinon';
-import { OTLPProtoMetricsExporter } from '../../src/metrics/otlp-proto-metrics-exporter';
+import { OTLPHttpMetricsExporter } from '../../src/metrics/otlp-proto-metrics-exporter';
 import { IExporterTransport } from '../../src/common/exporter-transport';
-import { IMetricsSerializer } from '../../src/metrics/serialization-utils';
 import {
   createExportMetricsServiceRequest,
   IExportMetricsServiceResponse,
@@ -29,6 +28,7 @@ import { ExportResultCode } from '@opentelemetry/core';
 import * as assert from 'assert';
 import { IExportResponse } from '../../src/common/http/http-transport-types';
 import { diag } from '@opentelemetry/api';
+import {IMetricsSerializer} from '../../src/metrics/metrics-serializer';
 
 describe('OTLPProtoMetricsExporter', function () {
   describe('export', function () {
@@ -59,7 +59,7 @@ describe('OTLPProtoMetricsExporter', function () {
 
       const temporalitySelector: AggregationTemporalitySelector = sinon.stub();
 
-      const exporter = new OTLPProtoMetricsExporter(
+      const exporter = new OTLPHttpMetricsExporter(
         mockTransport,
         mockSerializer,
         promiseQueue,
@@ -113,7 +113,7 @@ describe('OTLPProtoMetricsExporter', function () {
       // temporality selector is irrelevant for this test
       const temporalitySelector: AggregationTemporalitySelector = sinon.stub();
 
-      const exporter = new OTLPProtoMetricsExporter(
+      const exporter = new OTLPHttpMetricsExporter(
         mockTransport,
         mockSerializer,
         promiseQueue,
@@ -170,7 +170,7 @@ describe('OTLPProtoMetricsExporter', function () {
       // temporality selector is irrelevant for this test
       const temporalitySelector: AggregationTemporalitySelector = sinon.stub();
 
-      const exporter = new OTLPProtoMetricsExporter(
+      const exporter = new OTLPHttpMetricsExporter(
         mockTransport,
         mockSerializer,
         promiseQueue,
@@ -238,7 +238,7 @@ describe('OTLPProtoMetricsExporter', function () {
       // temporality selector is irrelevant for this test
       const temporalitySelector: AggregationTemporalitySelector = sinon.stub();
 
-      const exporter = new OTLPProtoMetricsExporter(
+      const exporter = new OTLPHttpMetricsExporter(
         mockTransport,
         mockSerializer,
         promiseQueue,
@@ -303,7 +303,7 @@ describe('OTLPProtoMetricsExporter', function () {
       // temporality selector is irrelevant for this test
       const temporalitySelector: AggregationTemporalitySelector = sinon.stub();
 
-      const exporter = new OTLPProtoMetricsExporter(
+      const exporter = new OTLPHttpMetricsExporter(
         mockTransport,
         mockSerializer,
         promiseQueue,
@@ -363,7 +363,7 @@ describe('OTLPProtoMetricsExporter', function () {
       // temporality selector is irrelevant for this test
       const temporalitySelector: AggregationTemporalitySelector = sinon.stub();
 
-      const exporter = new OTLPProtoMetricsExporter(
+      const exporter = new OTLPHttpMetricsExporter(
         mockTransport,
         mockSerializer,
         promiseQueue,

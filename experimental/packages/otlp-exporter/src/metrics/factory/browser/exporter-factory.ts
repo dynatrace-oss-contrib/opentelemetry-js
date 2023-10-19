@@ -15,16 +15,16 @@
  */
 
 import { PushMetricExporter } from '@opentelemetry/sdk-metrics';
-import { OTLPProtoMetricsExporter } from '../../otlp-proto-metrics-exporter';
+import { OTLPHttpMetricsExporter } from '../../otlp-proto-metrics-exporter';
 import { ExportPromiseQueue } from '../../../common/export-promise-queue';
 import { OtlpProtoMetricsConfiguration } from '../../configuration/types';
 import { DefaultingOtlpProtoMetricsConfigurationProvider } from '../../configuration/providers/defaulting';
-import { createMetricsSerializer } from '../../serialization-utils';
+import { createMetricsSerializer } from '../../protobuf/serialization-utils';
 import { RetryingTransport } from '../../../common/retrying-transport';
 import { XhrTransport } from '../../../common/http/browser/xhr-transport';
 import { IExporterTransport } from '../../../common/exporter-transport';
 import { SendBeaconTransport } from '../../../common/http/browser/send-beacon-transport';
-import {addShutdownOnUnload} from '../../../common/browser/shutdown-on-unload';
+import { addShutdownOnUnload } from '../../../common/browser/shutdown-on-unload';
 
 export function createBrowserMetricsExporter(
   options: Partial<OtlpProtoMetricsConfiguration>
@@ -56,11 +56,12 @@ export function createBrowserMetricsExporter(
   }
 
   const promiseQueue = new ExportPromiseQueue(configuration.concurrencyLimit);
-  const exporter = new OTLPProtoMetricsExporter(
+  const exporter = new OTLPHttpMetricsExporter(
     transport,
     createMetricsSerializer(),
     promiseQueue,
     configuration.temporalitySelector
   );
   addShutdownOnUnload(exporter);
+  return exporter;
 }

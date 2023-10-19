@@ -23,12 +23,12 @@ import {
 } from '@opentelemetry/sdk-metrics';
 import { ExportResult, ExportResultCode } from '@opentelemetry/core';
 import { createExportMetricsServiceRequest } from '@opentelemetry/otlp-transformer';
-import { IMetricsSerializer } from './serialization-utils';
 import { IExporterTransport } from '../common/exporter-transport';
 import { diag } from '@opentelemetry/api';
 import { IExportPromiseQueue } from '../common/export-promise-queue';
+import { IMetricsSerializer } from './metrics-serializer';
 
-export class OTLPProtoMetricsExporter implements PushMetricExporter {
+export class OTLPHttpMetricsExporter implements PushMetricExporter {
   constructor(
     private _transport: IExporterTransport,
     private _serializer: IMetricsSerializer,

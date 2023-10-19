@@ -13,18 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import * as root from '../generated/root';
 import {
   IExportMetricsServiceRequest,
   IExportMetricsServiceResponse,
 } from '@opentelemetry/otlp-transformer';
-
-export interface IMetricsSerializer {
-  serializeRequest(
-    request: IExportMetricsServiceRequest
-  ): Uint8Array | undefined;
-  deserializeResponse(data: Buffer): IExportMetricsServiceResponse;
-}
+import { IMetricsSerializer } from '../metrics-serializer';
 
 export function createMetricsSerializer(): IMetricsSerializer {
   return {
@@ -36,22 +29,9 @@ export function createMetricsSerializer(): IMetricsSerializer {
 function serializeRequest(
   request: IExportMetricsServiceRequest
 ): Uint8Array | undefined {
-  const exportRequestType =
-    root.opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceRequest;
-
-  const message = exportRequestType.create(
-    request as root.opentelemetry.proto.collector.metrics.v1.IExportMetricsServiceRequest
-  );
-  if (message) {
-    return exportRequestType.encode(message).finish();
-  }
-  return undefined;
+  return Buffer.from(JSON.stringify(request));
 }
 
 function deserializeResponse(data: Buffer): IExportMetricsServiceResponse {
-  const exportResponseType =
-    root.opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceResponse;
-
-  // TODO: May not deal well with null values (incompatible)
-  return exportResponseType.decode(data) as IExportMetricsServiceResponse;
+  return JSON.parse(data.toString());
 }
