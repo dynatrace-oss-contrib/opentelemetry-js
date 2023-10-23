@@ -14,30 +14,28 @@
  * limitations under the License.
  */
 
-import {
-  AggregationTemporality,
-  AggregationTemporalitySelector,
-  InstrumentType,
-  PushMetricExporter,
-  ResourceMetrics,
-} from '@opentelemetry/sdk-metrics';
 import { ExportResult, ExportResultCode } from '@opentelemetry/core';
-import { createExportMetricsServiceRequest } from '@opentelemetry/otlp-transformer';
-import { IExporterTransport } from '../common/exporter-transport';
+import { IExporterTransport } from '../exporter-transport';
 import { diag } from '@opentelemetry/api';
-import { IExportPromiseQueue } from '../common/export-promise-queue';
-import { IMetricsSerializer } from './metrics-serializer';
+import { IExportPromiseQueue } from '../export-promise-queue';
+import { ISerializer } from '../serializer';
+import { ITransformer } from '../transformer';
+import { IExportResponseHandler } from '../export-response-handler';
+import { IOLTPExportDelegate } from '../otlp-export-delegate';
 
-export class OTLPHttpMetricsExporter implements PushMetricExporter {
+export class OTLPHttpExporterDelegate<Internal, Request, Response>
+  implements IOLTPExportDelegate<Internal>
+{
   constructor(
     private _transport: IExporterTransport,
-    private _serializer: IMetricsSerializer,
+    private _transformer: ITransformer<Internal, Request>,
+    private _serializer: ISerializer<Request, Response>,
     private _promiseQueue: IExportPromiseQueue,
-    private _temporalitySelector: AggregationTemporalitySelector
+    private _responseHandler: IExportResponseHandler<Response>
   ) {}
 
   export(
-    metrics: ResourceMetrics,
+    internalRepresentation: Internal,
     resultCallback: (result: ExportResult) => void
   ): void {
     // don't do any work if too many exports are in progress.
@@ -49,7 +47,7 @@ export class OTLPHttpMetricsExporter implements PushMetricExporter {
       return;
     }
 
-    const internalRequest = createExportMetricsServiceRequest([metrics]);
+    const internalRequest = this._transformer.transform(internalRepresentation);
     const serializedRequest =
       this._serializer.serializeRequest(internalRequest);
 
@@ -66,14 +64,10 @@ export class OTLPHttpMetricsExporter implements PushMetricExporter {
         response => {
           if (response.data) {
             try {
-              const metricsResponse = this._serializer.deserializeResponse(
+              const deserializedResponse = this._serializer.deserializeResponse(
                 response.data
               );
-              if (metricsResponse.partialSuccess != null) {
-                diag.warn(
-                  `Export succeeded partially, rejected data points: ${metricsResponse.partialSuccess.rejectedDataPoints}, message:\n${metricsResponse.partialSuccess.errorMessage}`
-                );
-              }
+              this._responseHandler.handleResponse(deserializedResponse);
             } catch (err) {
               diag.error('Invalid response from remote', err);
             }
@@ -100,12 +94,6 @@ export class OTLPHttpMetricsExporter implements PushMetricExporter {
           })
       )
     );
-  }
-
-  selectAggregationTemporality(
-    instrumentType: InstrumentType
-  ): AggregationTemporality {
-    return this._temporalitySelector(instrumentType);
   }
 
   forceFlush(): Promise<void> {

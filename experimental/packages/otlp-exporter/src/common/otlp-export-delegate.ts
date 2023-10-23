@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-import {
-  IExportMetricsServiceRequest,
-  IExportMetricsServiceResponse,
-} from '@opentelemetry/otlp-transformer';
-import { ISerializer } from '../common/serializer';
+import { ExportResult } from '@opentelemetry/core';
 
-export type IMetricsSerializer = ISerializer<
-  IExportMetricsServiceRequest,
-  IExportMetricsServiceResponse
->;
+export interface IOLTPExportDelegate<Internal> {
+  export(
+    internalRepresentation: Internal,
+    resultCallback: (result: ExportResult) => void
+  ): void;
+  forceFlush(): Promise<void>;
+  shutdown(): Promise<void>;
+}

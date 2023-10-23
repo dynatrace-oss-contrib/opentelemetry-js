@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-import {
-  IExportMetricsServiceRequest,
-  IExportMetricsServiceResponse,
-} from '@opentelemetry/otlp-transformer';
-import { ISerializer } from '../common/serializer';
+import * as sinon from 'sinon';
 
-export type IMetricsSerializer = ISerializer<
-  IExportMetricsServiceRequest,
-  IExportMetricsServiceResponse
->;
+describe('OTLPProtoMetricsExporter', function () {
+  describe('export', function () {
+    afterEach(function () {
+      sinon.restore();
+    });
+  });
+
+  // TODO: test temporality selector
+});

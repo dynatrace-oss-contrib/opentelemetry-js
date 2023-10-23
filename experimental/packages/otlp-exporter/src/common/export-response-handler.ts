@@ -14,13 +14,6 @@
  * limitations under the License.
  */
 
-import {
-  IExportMetricsServiceRequest,
-  IExportMetricsServiceResponse,
-} from '@opentelemetry/otlp-transformer';
-import { ISerializer } from '../common/serializer';
-
-export type IMetricsSerializer = ISerializer<
-  IExportMetricsServiceRequest,
-  IExportMetricsServiceResponse
->;
+export interface IExportResponseHandler<Response> {
+  handleResponse(response: Response): void;
+}

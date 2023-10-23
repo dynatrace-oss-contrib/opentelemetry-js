@@ -14,13 +14,20 @@
  * limitations under the License.
  */
 
+import { ResourceMetrics } from '@opentelemetry/sdk-metrics';
+import { ITransformer } from '../../common/transformer';
 import {
+  createExportMetricsServiceRequest,
   IExportMetricsServiceRequest,
-  IExportMetricsServiceResponse,
 } from '@opentelemetry/otlp-transformer';
-import { ISerializer } from '../common/serializer';
 
-export type IMetricsSerializer = ISerializer<
-  IExportMetricsServiceRequest,
-  IExportMetricsServiceResponse
->;
+export function createProtobufMetricsTransformer(): ITransformer<
+  ResourceMetrics,
+  IExportMetricsServiceRequest
+> {
+  return {
+    transform: (metrics: ResourceMetrics) => {
+      return createExportMetricsServiceRequest([metrics]);
+    },
+  };
+}

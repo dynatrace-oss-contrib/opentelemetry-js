@@ -13,14 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-import {
-  IExportMetricsServiceRequest,
-  IExportMetricsServiceResponse,
-} from '@opentelemetry/otlp-transformer';
-import { ISerializer } from '../common/serializer';
-
-export type IMetricsSerializer = ISerializer<
-  IExportMetricsServiceRequest,
-  IExportMetricsServiceResponse
->;
+export interface ISerializer<Request, Response> {
+  serializeRequest(request: Request): Uint8Array | undefined;
+  deserializeResponse(data: Buffer): Response;
+}

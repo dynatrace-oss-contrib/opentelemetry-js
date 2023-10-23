@@ -15,27 +15,52 @@
  */
 
 import * as sinon from 'sinon';
-import { OTLPHttpMetricsExporter } from '../../src/metrics/otlp-proto-metrics-exporter';
-import { IExporterTransport } from '../../src/common/exporter-transport';
-import {
-  createExportMetricsServiceRequest,
-  IExportMetricsServiceResponse,
-} from '@opentelemetry/otlp-transformer';
-import { IExportPromiseQueue } from '../../src/common/export-promise-queue';
-import { AggregationTemporalitySelector } from '@opentelemetry/sdk-metrics';
-import { resourceMetrics } from './fixtures/resource-metrics';
-import { ExportResultCode } from '@opentelemetry/core';
+import { IExportMetricsServiceResponse } from '@opentelemetry/otlp-transformer';
 import * as assert from 'assert';
-import { IExportResponse } from '../../src/common/http/http-transport-types';
+import { IExporterTransport } from '../../../src/common/exporter-transport';
+import { ISerializer } from '../../../src/common/serializer';
+import { IExportPromiseQueue } from '../../../build/esnext/common/export-promise-queue';
+import { OTLPHttpExporterDelegate } from '../../../src/common/http/otlp-http-exporter';
+import { IExportResponseHandler } from '../../../src/common/export-response-handler';
+import { ITransformer } from '../../../src/common/transformer';
+import { ExportResultCode } from '@opentelemetry/core';
+import { IExportResponse } from '../../../build/esnext/common/http/http-transport-types';
 import { diag } from '@opentelemetry/api';
-import {IMetricsSerializer} from '../../src/metrics/metrics-serializer';
 
-describe('OTLPProtoMetricsExporter', function () {
+interface FakeInternalRepresentation {
+  foo: string;
+}
+
+interface FakeSignalRequest {
+  bar: string;
+}
+
+interface FakeSignalResponse {
+  baz: string;
+}
+
+type FakeSerializer = ISerializer<FakeSignalRequest, FakeSignalResponse>;
+type FakeResponseHandler = IExportResponseHandler<FakeSignalResponse>;
+type FakeTransformer = ITransformer<
+  FakeInternalRepresentation,
+  FakeSignalRequest
+>;
+
+const internalRepresentation: FakeInternalRepresentation = {
+  foo: 'internal',
+};
+
+const requestRepresentation: FakeSignalRequest = {
+  bar: 'request',
+};
+
+describe('OTLPHTTPExporter', function () {
   describe('export', function () {
     afterEach(function () {
       sinon.restore();
     });
 
+    // TODO: add assertions for newly introduced message handler/transformer
     it('fails if serializer returns undefined', function (done) {
       // transport does not need to do anything in this case.
       const transportStubs = {
@@ -47,7 +72,7 @@ describe('OTLPProtoMetricsExporter', function () {
         serializeRequest: sinon.stub().returns(undefined),
         deserializeResponse: sinon.stub(),
       };
-      const mockSerializer = <IMetricsSerializer>serializerStubs;
+      const mockSerializer = <FakeSerializer>serializerStubs;
 
       // promise queue has not reached capacity yet
       const promiseQueueStubs = {
@@ -57,16 +82,25 @@ describe('OTLPProtoMetricsExporter', function () {
       };
       const promiseQueue = <IExportPromiseQueue>promiseQueueStubs;
 
-      const temporalitySelector: AggregationTemporalitySelector = sinon.stub();
+      const responseHandlerStubs = {
+        handleResponse: sinon.stub(),
+      };
+      const responseHandler = <FakeResponseHandler>responseHandlerStubs;
 
-      const exporter = new OTLPHttpMetricsExporter(
+      const transformerStubs = {
+        transform: sinon.stub().returns(requestRepresentation),
+      };
+      const transformer = <FakeTransformer>transformerStubs;
+
+      const exporter = new OTLPHttpExporterDelegate(
         mockTransport,
+        transformer,
         mockSerializer,
         promiseQueue,
-        temporalitySelector
+        responseHandler
       );
 
-      exporter.export(resourceMetrics, result => {
+      exporter.export(internalRepresentation, result => {
         try {
           assert.strictEqual(result.code, ExportResultCode.FAILED);
           assert.ok(result.error);
@@ -78,7 +112,7 @@ describe('OTLPProtoMetricsExporter', function () {
 
       sinon.assert.calledOnceWithExactly(
         serializerStubs.serializeRequest,
-        createExportMetricsServiceRequest([resourceMetrics])
+        requestRepresentation
       );
       sinon.assert.notCalled(serializerStubs.deserializeResponse);
       sinon.assert.notCalled(transportStubs.send);
@@ -100,7 +134,7 @@ describe('OTLPProtoMetricsExporter', function () {
         serializeRequest: sinon.stub(),
         deserializeResponse: sinon.stub(),
       };
-      const mockSerializer = <IMetricsSerializer>serializerStubs;
+      const mockSerializer = <FakeSerializer>serializerStubs;
 
       // make queue signal that it is full.
       const promiseQueueStubs = {
@@ -110,17 +144,25 @@ describe('OTLPProtoMetricsExporter', function () {
       };
       const promiseQueue = <IExportPromiseQueue>promiseQueueStubs;
 
-      // temporality selector is irrelevant for this test
-      const temporalitySelector: AggregationTemporalitySelector = sinon.stub();
+      const responseHandlerStubs = {
+        handleResponse: sinon.stub(),
+      };
+      const responseHandler = <FakeResponseHandler>responseHandlerStubs;
 
-      const exporter = new OTLPHttpMetricsExporter(
+      const transformerStubs = {
+        transform: sinon.stub().returns(requestRepresentation),
+      };
+      const transformer = <FakeTransformer>transformerStubs;
+
+      const exporter = new OTLPHttpExporterDelegate(
         mockTransport,
+        transformer,
         mockSerializer,
         promiseQueue,
-        temporalitySelector
+        responseHandler
       );
 
-      exporter.export(resourceMetrics, result => {
+      exporter.export(internalRepresentation, result => {
         try {
           assert.strictEqual(result.code, ExportResultCode.FAILED);
           assert.ok(result.error);
@@ -139,8 +181,7 @@ describe('OTLPProtoMetricsExporter', function () {
       done();
     });
 
-    it('returns success if send promise resolves', function (done) {
-      // returns full success response (empty body)
+    it('returns success if send promise resolves with success', function (done) {
       const exportResponse: IExportResponse = {
         data: Buffer.from([]),
         status: 'success',
@@ -157,7 +198,7 @@ describe('OTLPProtoMetricsExporter', function () {
         // simulate that it returns a full success (empty response)
         deserializeResponse: sinon.stub().returns({}),
       };
-      const mockSerializer = <IMetricsSerializer>serializerStubs;
+      const mockSerializer = <FakeSerializer>serializerStubs;
 
       // mock a queue that has not yet reached capacity
       const promiseQueueStubs = {
@@ -167,17 +208,25 @@ describe('OTLPProtoMetricsExporter', function () {
       };
       const promiseQueue = <IExportPromiseQueue>promiseQueueStubs;
 
-      // temporality selector is irrelevant for this test
-      const temporalitySelector: AggregationTemporalitySelector = sinon.stub();
+      const responseHandlerStubs = {
+        handleResponse: sinon.stub(),
+      };
+      const responseHandler = <FakeResponseHandler>responseHandlerStubs;
 
-      const exporter = new OTLPHttpMetricsExporter(
+      const transformerStubs = {
+        transform: sinon.stub().returns(requestRepresentation),
+      };
+      const transformer = <FakeTransformer>transformerStubs;
+
+      const exporter = new OTLPHttpExporterDelegate(
         mockTransport,
+        transformer,
         mockSerializer,
         promiseQueue,
-        temporalitySelector
+        responseHandler
       );
 
-      exporter.export(resourceMetrics, result => {
+      exporter.export(internalRepresentation, result => {
         try {
           assert.strictEqual(result.code, ExportResultCode.SUCCESS);
           assert.strictEqual(result.error, undefined);
@@ -198,14 +247,145 @@ describe('OTLPProtoMetricsExporter', function () {
       });
     });
 
-    it('returns success and logs if partial success is returned', function (done) {
-      const spyLoggerWarn = sinon.stub(diag, 'warn');
+    it('returns failure if send promise resolves with failure', function (done) {
+      const exportResponse: IExportResponse = {
+        data: Buffer.from([]),
+        status: 'failure',
+      };
+      // transport fakes empty response
+      const transportStubs = {
+        send: sinon.stub().returns(Promise.resolve(exportResponse)),
+      };
+      const mockTransport = <IExporterTransport>transportStubs;
 
+      const serializerStubs = {
+        // simulate that the serializer returns something to send
+        serializeRequest: sinon.stub().returns(Buffer.from([1])),
+        // simulate that it returns a full success (empty response)
+        deserializeResponse: sinon.stub().returns({}),
+      };
+      const mockSerializer = <FakeSerializer>serializerStubs;
+
+      // mock a queue that has not yet reached capacity
+      const promiseQueueStubs = {
+        pushPromise: sinon.stub(),
+        hasReachedLimit: sinon.stub().returns(false),
+        awaitAll: sinon.stub(),
+      };
+      const promiseQueue = <IExportPromiseQueue>promiseQueueStubs;
+
+      const responseHandlerStubs = {
+        handleResponse: sinon.stub(),
+      };
+      const responseHandler = <FakeResponseHandler>responseHandlerStubs;
+
+      const transformerStubs = {
+        transform: sinon.stub().returns(requestRepresentation),
+      };
+      const transformer = <FakeTransformer>transformerStubs;
+
+      const exporter = new OTLPHttpExporterDelegate(
+        mockTransport,
+        transformer,
+        mockSerializer,
+        promiseQueue,
+        responseHandler
+      );
+
+      exporter.export(internalRepresentation, result => {
+        try {
+          assert.strictEqual(result.code, ExportResultCode.FAILED);
+          assert.strictEqual(result.error, undefined);
+
+          // assert here as otherwise the promise will not have executed yet
+          // TODO: assert correct values are passed to the stubs.
+          sinon.assert.calledOnce(serializerStubs.serializeRequest);
+          sinon.assert.calledOnce(serializerStubs.deserializeResponse);
+          sinon.assert.calledOnce(transportStubs.send);
+          sinon.assert.calledOnce(promiseQueueStubs.pushPromise);
+          sinon.assert.calledOnce(promiseQueueStubs.hasReachedLimit);
+          sinon.assert.notCalled(promiseQueueStubs.awaitAll);
+          done();
+        } catch (err) {
+          // ensures we throw if there are more calls to result;
+          done(err);
+        }
+      });
+    });
+
+    it('returns failure if send promise resolves with retryable', function (done) {
+      const exportResponse: IExportResponse = {
+        data: Buffer.from([]),
+        status: 'retryable',
+      };
+      // transport fakes empty response
+      const transportStubs = {
+        send: sinon.stub().returns(Promise.resolve(exportResponse)),
+      };
+      const mockTransport = <IExporterTransport>transportStubs;
+
+      const serializerStubs = {
+        // simulate that the serializer returns something to send
+        serializeRequest: sinon.stub().returns(Buffer.from([1])),
+        // simulate that it returns a full success (empty response)
+        deserializeResponse: sinon.stub().returns({}),
+      };
+      const mockSerializer = <FakeSerializer>serializerStubs;
+
+      // mock a queue that has not yet reached capacity
+      const promiseQueueStubs = {
+        pushPromise: sinon.stub(),
+        hasReachedLimit: sinon.stub().returns(false),
+        awaitAll: sinon.stub(),
+      };
+      const promiseQueue = <IExportPromiseQueue>promiseQueueStubs;
+
+      const responseHandlerStubs = {
+        handleResponse: sinon.stub(),
+      };
+      const responseHandler = <FakeResponseHandler>responseHandlerStubs;
+
+      const transformerStubs = {
+        transform: sinon.stub().returns(requestRepresentation),
+      };
+      const transformer = <FakeTransformer>transformerStubs;
+
+      const exporter = new OTLPHttpExporterDelegate(
+        mockTransport,
+        transformer,
+        mockSerializer,
+        promiseQueue,
+        responseHandler
+      );
+
+      exporter.export(internalRepresentation, result => {
+        try {
+          assert.strictEqual(result.code, ExportResultCode.FAILED);
+          assert.strictEqual(result.error, undefined);
+
+          // assert here as otherwise the promise will not have executed yet
+          // TODO: assert correct values are passed to the stubs.
+          sinon.assert.calledOnce(serializerStubs.serializeRequest);
+          sinon.assert.calledOnce(serializerStubs.deserializeResponse);
+          sinon.assert.calledOnce(transportStubs.send);
+          sinon.assert.calledOnce(promiseQueueStubs.pushPromise);
+          sinon.assert.calledOnce(promiseQueueStubs.hasReachedLimit);
+          sinon.assert.notCalled(promiseQueueStubs.awaitAll);
+          done();
+        } catch (err) {
+          // ensures we throw if there are more calls to result;
+          done(err);
+        }
+      });
+    });
+
+    it('returns success if partial success is returned', function (done) {
       // returns full success response (empty body)
       const exportResponse: IExportResponse = {
         data: Buffer.from([]),
         status: 'success',
       };
+
       // transport does not need to do anything in this case.
       const transportStubs = {
         send: sinon.stub().returns(Promise.resolve(exportResponse)),
@@ -225,7 +405,7 @@ describe('OTLPProtoMetricsExporter', function () {
         // simulate that it returns a full success (empty response)
         deserializeResponse: sinon.stub().returns(response),
       };
-      const mockSerializer = <IMetricsSerializer>serializerStubs;
+      const mockSerializer = <FakeSerializer>serializerStubs;
 
       // mock a queue that has not yet reached capacity
       const promiseQueueStubs = {
@@ -235,26 +415,30 @@ describe('OTLPProtoMetricsExporter', function () {
       };
       const promiseQueue = <IExportPromiseQueue>promiseQueueStubs;
 
-      // temporality selector is irrelevant for this test
-      const temporalitySelector: AggregationTemporalitySelector = sinon.stub();
+      const responseHandlerStubs = {
+        handleResponse: sinon.stub(),
+      };
+      const responseHandler = <FakeResponseHandler>responseHandlerStubs;
 
-      const exporter = new OTLPHttpMetricsExporter(
+      const transformerStubs = {
+        transform: sinon.stub().returns(requestRepresentation),
+      };
+      const transformer = <FakeTransformer>transformerStubs;
+
+      const exporter = new OTLPHttpExporterDelegate(
         mockTransport,
+        transformer,
         mockSerializer,
         promiseQueue,
-        temporalitySelector
+        responseHandler
       );
 
-      exporter.export(resourceMetrics, result => {
+      exporter.export(internalRepresentation, result => {
         try {
           assert.strictEqual(result.code, ExportResultCode.SUCCESS);
           assert.strictEqual(result.error, undefined);
 
           // assert here as otherwise the promise will not have executed yet
-          sinon.assert.calledWithExactly(
-            spyLoggerWarn,
-            'Export succeeded partially, rejected data points: 10, message:\nmock error message'
-          );
           sinon.assert.calledOnce(serializerStubs.serializeRequest);
           sinon.assert.calledOnce(serializerStubs.deserializeResponse);
           sinon.assert.calledOnce(transportStubs.send);
@@ -290,7 +474,7 @@ describe('OTLPProtoMetricsExporter', function () {
         // simulate that it returns a full success (empty response)
         deserializeResponse: sinon.stub().throws(mockSerializationError),
       };
-      const mockSerializer = <IMetricsSerializer>serializerStubs;
+      const mockSerializer = <FakeSerializer>serializerStubs;
 
       // mock a queue that has not yet reached capacity
       const promiseQueueStubs = {
@@ -300,17 +484,25 @@ describe('OTLPProtoMetricsExporter', function () {
       };
       const promiseQueue = <IExportPromiseQueue>promiseQueueStubs;
 
-      // temporality selector is irrelevant for this test
-      const temporalitySelector: AggregationTemporalitySelector = sinon.stub();
+      const responseHandlerStubs = {
+        handleResponse: sinon.stub(),
+      };
+      const responseHandler = <FakeResponseHandler>responseHandlerStubs;
 
-      const exporter = new OTLPHttpMetricsExporter(
+      const transformerStubs = {
+        transform: sinon.stub().returns(requestRepresentation),
+      };
+      const transformer = <FakeTransformer>transformerStubs;
+
+      const exporter = new OTLPHttpExporterDelegate(
         mockTransport,
+        transformer,
         mockSerializer,
         promiseQueue,
-        temporalitySelector
+        responseHandler
       );
 
-      exporter.export(resourceMetrics, result => {
+      exporter.export(internalRepresentation, result => {
         try {
           assert.strictEqual(result.code, ExportResultCode.SUCCESS);
           assert.strictEqual(result.error, undefined);
@@ -335,8 +527,6 @@ describe('OTLPProtoMetricsExporter', function () {
       });
     });
 
-    // TODO: test that returning failure from transprot returns failure here
-
     it('returns failure when send rejects', function (done) {
       const transportStubs = {
         // make transport reject
@@ -350,7 +540,7 @@ describe('OTLPProtoMetricsExporter', function () {
         // does not need to do anything, should never be called.
         deserializeResponse: sinon.stub(),
       };
-      const mockSerializer = <IMetricsSerializer>serializerStubs;
+      const mockSerializer = <FakeSerializer>serializerStubs;
 
       // mock a queue that has not yet reached capacity
       const promiseQueueStubs = {
@@ -360,17 +550,25 @@ describe('OTLPProtoMetricsExporter', function () {
       };
       const promiseQueue = <IExportPromiseQueue>promiseQueueStubs;
 
-      // temporality selector is irrelevant for this test
-      const temporalitySelector: AggregationTemporalitySelector = sinon.stub();
+      const responseHandlerStubs = {
+        handleResponse: sinon.stub(),
+      };
+      const responseHandler = <FakeResponseHandler>responseHandlerStubs;
 
-      const exporter = new OTLPHttpMetricsExporter(
+      const transformerStubs = {
+        transform: sinon.stub().returns(requestRepresentation),
+      };
+      const transformer = <FakeTransformer>transformerStubs;
+
+      const exporter = new OTLPHttpExporterDelegate(
         mockTransport,
+        transformer,
         mockSerializer,
         promiseQueue,
-        temporalitySelector
+        responseHandler
       );
 
-      exporter.export(resourceMetrics, result => {
+      exporter.export(internalRepresentation, result => {
         try {
           assert.strictEqual(result.code, ExportResultCode.FAILED);
           assert.ok(result.error);
