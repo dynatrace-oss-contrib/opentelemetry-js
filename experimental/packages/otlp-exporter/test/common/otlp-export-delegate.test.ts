@@ -17,15 +17,15 @@
 import * as sinon from 'sinon';
 import { IExportMetricsServiceResponse } from '@opentelemetry/otlp-transformer';
 import * as assert from 'assert';
-import { IExporterTransport } from '../../../src/common/exporter-transport';
-import { ISerializer } from '../../../src/common/serializer';
-import { IExportPromiseQueue } from '../../../build/esnext/common/export-promise-queue';
-import { OTLPHttpExporterDelegate } from '../../../src/common/http/otlp-http-exporter';
-import { IExportResponseHandler } from '../../../src/common/export-response-handler';
-import { ITransformer } from '../../../src/common/transformer';
+import { IExporterTransport } from '../../src/common/exporter-transport';
+import { ISerializer } from '../../src/common/serializer';
+import { IExportPromiseQueue } from '../../build/esnext/common/export-promise-queue';
+import { IExportResponseHandler } from '../../src/common/export-response-handler';
+import { ITransformer } from '../../src/common/transformer';
 import { ExportResultCode } from '@opentelemetry/core';
-import { IExportResponse } from '../../../build/esnext/common/http/http-transport-types';
+import { IExportResponse } from '../../build/esnext/common/http/http-transport-types';
 import { diag } from '@opentelemetry/api';
+import {OTLPExportDelegate} from '../../src/common/otlp-export-delegate';
 
 interface FakeInternalRepresentation {
   foo: string;
@@ -54,7 +54,7 @@ const requestRepresentation: FakeSignalRequest = {
   bar: 'request',
 };
 
-describe('OTLPHTTPExporter', function () {
+describe('OTLPExportDelegate', function () {
   describe('export', function () {
     afterEach(function () {
       sinon.restore();
@@ -92,7 +92,7 @@ describe('OTLPHTTPExporter', function () {
       };
       const transformer = <FakeTransformer>transformerStubs;
 
-      const exporter = new OTLPHttpExporterDelegate(
+      const exporter = new OTLPExportDelegate(
         mockTransport,
         transformer,
         mockSerializer,
@@ -154,7 +154,7 @@ describe('OTLPHTTPExporter', function () {
       };
       const transformer = <FakeTransformer>transformerStubs;
 
-      const exporter = new OTLPHttpExporterDelegate(
+      const exporter = new OTLPExportDelegate(
         mockTransport,
         transformer,
         mockSerializer,
@@ -218,7 +218,7 @@ describe('OTLPHTTPExporter', function () {
       };
       const transformer = <FakeTransformer>transformerStubs;
 
-      const exporter = new OTLPHttpExporterDelegate(
+      const exporter = new OTLPExportDelegate(
         mockTransport,
         transformer,
         mockSerializer,
@@ -284,7 +284,7 @@ describe('OTLPHTTPExporter', function () {
       };
       const transformer = <FakeTransformer>transformerStubs;
 
-      const exporter = new OTLPHttpExporterDelegate(
+      const exporter = new OTLPExportDelegate(
         mockTransport,
         transformer,
         mockSerializer,
@@ -350,7 +350,7 @@ describe('OTLPHTTPExporter', function () {
       };
       const transformer = <FakeTransformer>transformerStubs;
 
-      const exporter = new OTLPHttpExporterDelegate(
+      const exporter = new OTLPExportDelegate(
         mockTransport,
         transformer,
         mockSerializer,
@@ -425,7 +425,7 @@ describe('OTLPHTTPExporter', function () {
       };
       const transformer = <FakeTransformer>transformerStubs;
 
-      const exporter = new OTLPHttpExporterDelegate(
+      const exporter = new OTLPExportDelegate(
         mockTransport,
         transformer,
         mockSerializer,
@@ -494,7 +494,7 @@ describe('OTLPHTTPExporter', function () {
       };
       const transformer = <FakeTransformer>transformerStubs;
 
-      const exporter = new OTLPHttpExporterDelegate(
+      const exporter = new OTLPExportDelegate(
         mockTransport,
         transformer,
         mockSerializer,
@@ -560,7 +560,7 @@ describe('OTLPHTTPExporter', function () {
       };
       const transformer = <FakeTransformer>transformerStubs;
 
-      const exporter = new OTLPHttpExporterDelegate(
+      const exporter = new OTLPExportDelegate(
         mockTransport,
         transformer,
         mockSerializer,

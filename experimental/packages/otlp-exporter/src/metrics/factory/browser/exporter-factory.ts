@@ -19,7 +19,7 @@ import { OTLPHttpMetricsExporter } from '../../otlp-proto-metrics-exporter';
 import { ExportPromiseQueue } from '../../../common/export-promise-queue';
 import { OtlpProtoMetricsConfiguration } from '../../configuration/types';
 import { DefaultingOtlpProtoMetricsConfigurationProvider } from '../../configuration/providers/defaulting';
-import { createMetricsSerializer } from '../../protobuf/serialization-utils';
+import { createProtobufMetricsSerializer } from '../../protobuf/serialization-utils';
 import { RetryingTransport } from '../../../common/retrying-transport';
 import { XhrTransport } from '../../../common/http/browser/xhr-transport';
 import { IExporterTransport } from '../../../common/exporter-transport';
@@ -58,7 +58,7 @@ export function createBrowserMetricsExporter(
   const promiseQueue = new ExportPromiseQueue(configuration.concurrencyLimit);
   const exporter = new OTLPHttpMetricsExporter(
     transport,
-    createMetricsSerializer(),
+    createProtobufMetricsSerializer(),
     promiseQueue,
     configuration.temporalitySelector
   );

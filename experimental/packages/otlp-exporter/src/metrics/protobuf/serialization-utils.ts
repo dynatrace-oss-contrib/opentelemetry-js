@@ -20,7 +20,7 @@ import {
 } from '@opentelemetry/otlp-transformer';
 import { IMetricsSerializer } from '../metrics-serializer';
 
-export function createMetricsSerializer(): IMetricsSerializer {
+export function createProtobufMetricsSerializer(): IMetricsSerializer {
   return {
     serializeRequest,
     deserializeResponse,

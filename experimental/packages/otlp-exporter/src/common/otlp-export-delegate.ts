@@ -14,13 +14,93 @@
  * limitations under the License.
  */
 
-import { ExportResult } from '@opentelemetry/core';
+import { ExportResult, ExportResultCode } from '@opentelemetry/core';
+import { IExporterTransport } from './exporter-transport';
+import { diag } from '@opentelemetry/api';
+import { IExportPromiseQueue } from './export-promise-queue';
+import { ISerializer } from './serializer';
+import { ITransformer } from './transformer';
+import { IExportResponseHandler } from './export-response-handler';
+import { IOLTPExportDelegate } from './interface-otlp-export-delegate';
 
-export interface IOLTPExportDelegate<Internal> {
+export class OTLPExportDelegate<Internal, Request, Response>
+  implements IOLTPExportDelegate<Internal>
+{
+  constructor(
+    private _transport: IExporterTransport,
+    private _transformer: ITransformer<Internal, Request>,
+    private _serializer: ISerializer<Request, Response>,
+    private _promiseQueue: IExportPromiseQueue,
+    private _responseHandler: IExportResponseHandler<Response>
+  ) {}
+
   export(
     internalRepresentation: Internal,
     resultCallback: (result: ExportResult) => void
-  ): void;
-  forceFlush(): Promise<void>;
-  shutdown(): Promise<void>;
+  ): void {
+    // don't do any work if too many exports are in progress.
+    if (this._promiseQueue.hasReachedLimit()) {
+      resultCallback({
+        code: ExportResultCode.FAILED,
+        error: new Error('Sending queue is full'),
+      });
+      return;
+    }
+
+    const internalRequest = this._transformer.transform(internalRepresentation);
+    const serializedRequest =
+      this._serializer.serializeRequest(internalRequest);
+
+    if (serializedRequest == null) {
+      resultCallback({
+        code: ExportResultCode.FAILED,
+        error: new Error('Nothing to send'),
+      });
+      return;
+    }
+
+    this._promiseQueue.pushPromise(
+      this._transport.send(Buffer.from(serializedRequest)).then(
+        response => {
+          if (response.data) {
+            try {
+              const deserializedResponse = this._serializer.deserializeResponse(
+                response.data
+              );
+              this._responseHandler.handleResponse(deserializedResponse);
+            } catch (err) {
+              diag.error('Invalid response from remote', err);
+            }
+          }
+
+          if (response.status === 'success') {
+            // No matter the response, we can consider the export still successful.
+            resultCallback({
+              code: ExportResultCode.SUCCESS,
+            });
+            return;
+          }
+
+          // Other responses may not reject, but still indicate failure.
+          resultCallback({
+            code: ExportResultCode.FAILED,
+            error: response.error,
+          });
+        },
+        reason =>
+          resultCallback({
+            code: ExportResultCode.FAILED,
+            error: reason,
+          })
+      )
+    );
+  }
+
+  forceFlush(): Promise<void> {
+    return this._promiseQueue.awaitAll();
+  }
+
+  shutdown(): Promise<void> {
+    return this.forceFlush();
+  }
 }

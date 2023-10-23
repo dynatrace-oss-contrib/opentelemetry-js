@@ -15,14 +15,26 @@
  */
 
 import { PushMetricExporter } from '@opentelemetry/sdk-metrics';
-import { OTLPHttpMetricsExporter } from '../../otlp-proto-metrics-exporter';
 import { HttpExporterTransport } from '../../../common/http/node/http-exporter-transport';
 import { ExportPromiseQueue } from '../../../common/export-promise-queue';
 import { OtlpProtoMetricsConfiguration } from '../../configuration/types';
 import { EnvironmentOtlpProtoMetricsConfigurationProvider } from '../../configuration/providers/environment';
 import { DefaultingOtlpProtoMetricsConfigurationProvider } from '../../configuration/providers/defaulting';
-import { createMetricsSerializer } from '../../protobuf/serialization-utils';
+import { createProtobufMetricsSerializer } from '../../protobuf/serialization-utils';
 import { RetryingTransport } from '../../../common/retrying-transport';
+import { OTLPExportDelegate } from '../../../common/otlp-export-delegate';
+import { createProtobufMetricsTransformer } from '../../protobuf/metrics-transformer';
+import { createMetricsPartialSuccessHandler } from '../../partial-success-handler';
+import { OTLPMetricsExporter } from '../../otlp-metrics-exporter';
+import {
+  createEmptyMetadata,
+  createInsecureCredentials,
+  GrpcExporterTransport,
+} from '../../../common/grpc/grpc-exporter-transport';
+import {
+  METRICS_PATH,
+  METRICS_SERVICE_NAME,
+} from '../../grpc/metrics-service-client-info';
 
 export function createNodeOtlpProtoExporter(
   options: Partial<OtlpProtoMetricsConfiguration>
@@ -45,10 +57,55 @@ export function createNodeOtlpProtoExporter(
   const retryingTransport = new RetryingTransport(transport);
 
   const promiseQueue = new ExportPromiseQueue(configuration.concurrencyLimit);
-  return new OTLPHttpMetricsExporter(
+  const exportDelegate = new OTLPExportDelegate(
     retryingTransport,
-    createMetricsSerializer(),
+    createProtobufMetricsTransformer(),
+    createProtobufMetricsSerializer(),
     promiseQueue,
+    createMetricsPartialSuccessHandler()
+  );
+
+  return new OTLPMetricsExporter(
+    exportDelegate,
+    configuration.temporalitySelector
+  );
+}
+
+export function createNodeOtlpGrpcExporter(
+  options: Partial<OtlpProtoMetricsConfiguration>
+): PushMetricExporter {
+  // TODO: proper configproviders.
+  const environmentConfiguration =
+    new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
+  const configuration = new DefaultingOtlpProtoMetricsConfigurationProvider(
+    options,
+    environmentConfiguration
+  ).provide();
+
+  const transport = new GrpcExporterTransport({
+    grpcName: METRICS_SERVICE_NAME,
+    grpcPath: METRICS_PATH,
+    address: configuration.url,
+    credentials: createInsecureCredentials,
+    compression: configuration.compression,
+    timeoutMillis: configuration.timeoutMillis,
+    metadata: createEmptyMetadata,
+  });
+
+  const promiseQueue = new ExportPromiseQueue(configuration.concurrencyLimit);
+  const exportDelegate = new OTLPExportDelegate(
+    // No retry necessary, happens automatically in grpc
+    transport,
+    // re-use protobuf
+    createProtobufMetricsTransformer(),
+    // re-use protobuf
+    createProtobufMetricsSerializer(),
+    promiseQueue,
+    createMetricsPartialSuccessHandler()
+  );
+
+  return new OTLPMetricsExporter(
+    exportDelegate,
     configuration.temporalitySelector
   );
 }

@@ -28,6 +28,7 @@ const DEFAULT_HTTP_METRICS_URL = 'http://localhost:4318/v1/metrics';
 const DEFAULT_COMPRESSION = 'none';
 const DEFAULT_TEMPORALITY_SELECTOR = CumulativeTemporalitySelector;
 
+// TODO: this is http-specific not protobuf.
 export class DefaultingOtlpProtoMetricsConfigurationProvider
   implements IConfigurationProvider<OtlpProtoMetricsConfiguration>
 {
