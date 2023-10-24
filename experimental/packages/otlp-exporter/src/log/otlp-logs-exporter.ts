@@ -14,33 +14,19 @@
  * limitations under the License.
  */
 
-import {
-  AggregationTemporality,
-  AggregationTemporalitySelector,
-  InstrumentType,
-  PushMetricExporter,
-  ResourceMetrics,
-} from '@opentelemetry/sdk-metrics';
 import { ExportResult } from '@opentelemetry/core';
 import { IOLTPExportDelegate } from '../common/interface-otlp-export-delegate';
+import { LogRecordExporter, ReadableLogRecord} from '@opentelemetry/sdk-logs';
 
-export class OTLPMetricsExporter implements PushMetricExporter {
-  constructor(
-    private _delegate: IOLTPExportDelegate<ResourceMetrics>,
-    private _temporalitySelector: AggregationTemporalitySelector
-  ) {}
+// This is currently a placeholder so that signal-specific functionality can be added here in the future if needed.
+export class OTLPTracesExporter implements LogRecordExporter {
+  constructor(private _delegate: IOLTPExportDelegate<ReadableLogRecord[]>) {}
 
   export(
-    metrics: ResourceMetrics,
+    logs: ReadableLogRecord[],
     resultCallback: (result: ExportResult) => void
   ): void {
-    this._delegate.export(metrics, resultCallback);
-  }
-
-  selectAggregationTemporality(
-    instrumentType: InstrumentType
-  ): AggregationTemporality {
-    return this._temporalitySelector(instrumentType);
+    this._delegate.export(logs, resultCallback);
   }
 
   forceFlush(): Promise<void> {

@@ -15,7 +15,6 @@
  */
 
 import { PushMetricExporter } from '@opentelemetry/sdk-metrics';
-import { OTLPHttpMetricsExporter } from '../../otlp-proto-metrics-exporter';
 import { ExportPromiseQueue } from '../../../common/export-promise-queue';
 import { OtlpProtoMetricsConfiguration } from '../../configuration/types';
 import { DefaultingOtlpProtoMetricsConfigurationProvider } from '../../configuration/providers/defaulting';
@@ -25,6 +24,10 @@ import { XhrTransport } from '../../../common/http/browser/xhr-transport';
 import { IExporterTransport } from '../../../common/exporter-transport';
 import { SendBeaconTransport } from '../../../common/http/browser/send-beacon-transport';
 import { addShutdownOnUnload } from '../../../common/browser/shutdown-on-unload';
+import { OTLPExporterDelegate } from '../../../../build/src/common/http/otlp-http-exporter';
+import { createJsonMetricsTransformer } from '../../json/metrics-transformer';
+import { createMetricsPartialSuccessHandler } from '../../partial-success-handler';
+import { OTLPMetricsExporter } from '../../otlp-metrics-exporter';
 
 export function createBrowserMetricsExporter(
   options: Partial<OtlpProtoMetricsConfiguration>
@@ -39,7 +42,7 @@ export function createBrowserMetricsExporter(
 
   let transport: IExporterTransport | undefined = undefined;
   if (useXHR) {
-    // only XHR needs to retry, sendBeacon does not get responses
+    // only XHR needs to retry, sendBeacon does not get responses -> retry is just dead code there
     transport = new RetryingTransport(
       new XhrTransport({
         url: configuration.url,
@@ -56,12 +59,20 @@ export function createBrowserMetricsExporter(
   }
 
   const promiseQueue = new ExportPromiseQueue(configuration.concurrencyLimit);
-  const exporter = new OTLPHttpMetricsExporter(
+  const exporterDelegate = new OTLPExporterDelegate(
     transport,
+    createJsonMetricsTransformer(),
     createProtobufMetricsSerializer(),
     promiseQueue,
+    createMetricsPartialSuccessHandler()
+  );
+
+  const exporter = new OTLPMetricsExporter(
+    exporterDelegate,
     configuration.temporalitySelector
   );
+
   addShutdownOnUnload(exporter);
+
   return exporter;
 }
