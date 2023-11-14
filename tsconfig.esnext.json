@@ -42,6 +42,9 @@
       "path": "experimental/packages/opentelemetry-instrumentation-xml-http-request/tsconfig.esnext.json"
     },
     {
+      "path": "experimental/packages/otlp-exporter/tsconfig.esnext.json"
+    },
+    {
       "path": "experimental/packages/otlp-exporter-base/tsconfig.esnext.json"
     },
     {

@@ -14,20 +14,25 @@
  * limitations under the License.
  */
 
-import { ITransformer } from '../../common/transformer';
 import {
-  createExportTraceServiceRequest,
-  IExportTraceServiceRequest,
+  IExportLogsServiceRequest,
+  IExportLogsServiceResponse,
 } from '@opentelemetry/otlp-transformer';
-import { ReadableSpan } from '@opentelemetry/sdk-trace-base';
+import { ILogsSerializer } from '../logs-serializer';
 
-export function createJsonTracesTransformer(): ITransformer<
-  ReadableSpan[],
-  IExportTraceServiceRequest
-> {
+export function createLogsSerializer(): ILogsSerializer {
   return {
-    transform: (spans: ReadableSpan[]) => {
-      return createExportTraceServiceRequest(spans, true);
-    },
+    serializeRequest,
+    deserializeResponse,
   };
+}
+
+function serializeRequest(
+  request: IExportLogsServiceRequest
+): Uint8Array | undefined {
+  return Buffer.from(JSON.stringify(request));
+}
+
+function deserializeResponse(data: Buffer): IExportLogsServiceResponse {
+  return JSON.parse(data.toString());
 }

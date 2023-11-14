@@ -19,13 +19,13 @@ import { IExportMetricsServiceResponse } from '@opentelemetry/otlp-transformer';
 import * as assert from 'assert';
 import { IExporterTransport } from '../../src/common/exporter-transport';
 import { ISerializer } from '../../src/common/serializer';
-import { IExportPromiseQueue } from '../../build/esnext/common/export-promise-queue';
+import { IExportPromiseQueue } from '../../src/common/export-promise-queue';
 import { IExportResponseHandler } from '../../src/common/export-response-handler';
 import { ITransformer } from '../../src/common/transformer';
 import { ExportResultCode } from '@opentelemetry/core';
-import { IExportResponse } from '../../build/esnext/common/http/http-transport-types';
+import { IExportResponse } from '../../src/common/http/http-transport-types';
 import { diag } from '@opentelemetry/api';
-import {OTLPExportDelegate} from '../../src/common/otlp-export-delegate';
+import { OTLPExportDelegate } from '../../src/common/otlp-export-delegate';
 
 interface FakeInternalRepresentation {
   foo: string;

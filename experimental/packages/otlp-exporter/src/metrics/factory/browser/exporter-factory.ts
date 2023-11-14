@@ -24,7 +24,7 @@ import { XhrTransport } from '../../../common/http/browser/xhr-transport';
 import { IExporterTransport } from '../../../common/exporter-transport';
 import { SendBeaconTransport } from '../../../common/http/browser/send-beacon-transport';
 import { addShutdownOnUnload } from '../../../common/browser/shutdown-on-unload';
-import { OTLPExporterDelegate } from '../../../../build/src/common/http/otlp-http-exporter';
+import { OTLPExportDelegate } from '../../../common/otlp-export-delegate';
 import { createJsonMetricsTransformer } from '../../json/metrics-transformer';
 import { createMetricsPartialSuccessHandler } from '../../partial-success-handler';
 import { OTLPMetricsExporter } from '../../otlp-metrics-exporter';
@@ -59,7 +59,7 @@ export function createBrowserMetricsExporter(
   }
 
   const promiseQueue = new ExportPromiseQueue(configuration.concurrencyLimit);
-  const exporterDelegate = new OTLPExporterDelegate(
+  const exporterDelegate = new OTLPExportDelegate(
     transport,
     createJsonMetricsTransformer(),
     createProtobufMetricsSerializer(),
