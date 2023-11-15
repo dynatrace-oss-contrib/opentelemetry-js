@@ -14,104 +14,30 @@
  * limitations under the License.
  */
 
-import { VERSION } from '../../../version';
-import { OtlpProtoMetricsConfiguration } from '../types';
+import { MetricsConfiguration } from '../types';
 import { CumulativeTemporalitySelector } from '../temporality-selectors';
 import { IConfigurationProvider } from '../../../common/configuration/provider';
 
-// Specification defines 10 seconds.
-const DEFAULT_TIMEOUT = 10000;
-// Non-specified default limit concurrent exports.
-const DEFAULT_CONCURRENCY_LIMIT = Infinity;
-// Specification defines OTLP/HTTP default URL to be http://localhost:4318
-const DEFAULT_HTTP_METRICS_URL = 'http://localhost:4318/v1/metrics';
-const DEFAULT_COMPRESSION = 'none';
 const DEFAULT_TEMPORALITY_SELECTOR = CumulativeTemporalitySelector;
 
-// TODO: this is http-specific not protobuf.
-export class DefaultingOtlpProtoMetricsConfigurationProvider
-  implements IConfigurationProvider<OtlpProtoMetricsConfiguration>
+export class DefaultingMetricsConfigurationProvider
+  implements IConfigurationProvider<MetricsConfiguration>
 {
   /**
    * @param _userProvidedConfiguration Hard-coded configuration options provided by the user.
    * @param _fallbackConfiguration Fallback to use when the _userProvidedConfiguration does not specify an option.
    */
   constructor(
-    private _userProvidedConfiguration: Partial<OtlpProtoMetricsConfiguration>,
-    private _fallbackConfiguration: Partial<OtlpProtoMetricsConfiguration>
+    private _userProvidedConfiguration: Partial<MetricsConfiguration>,
+    private _fallbackConfiguration: Partial<MetricsConfiguration>
   ) {}
 
-  private determineUrl(): string {
-    return (
-      this._userProvidedConfiguration.url ??
-      this._fallbackConfiguration.url ??
-      DEFAULT_HTTP_METRICS_URL
-    );
-  }
-
-  private determineHeaders(): Record<string, string> {
-    // TODO: require accept, content-type?
-    const requiredHeaders = {
-      'User-Agent': `OTel-OTLP-Exporter-JavaScript/${VERSION}`,
-    };
-    const headers = {};
-
-    // add fallback ones first
-    if (this._fallbackConfiguration.headers != null) {
-      Object.assign(headers, this._fallbackConfiguration.headers);
-    }
-
-    // override with user-provided ones
-    if (this._userProvidedConfiguration.headers != null) {
-      Object.assign(headers, this._userProvidedConfiguration.headers);
-    }
-
-    // override required ones before exiting.
-    return Object.assign(headers, requiredHeaders);
-  }
-
-  private determineCompression(): 'gzip' | 'none' {
-    return (
-      this._userProvidedConfiguration.compression ??
-      this._fallbackConfiguration.compression ??
-      DEFAULT_COMPRESSION
-    );
-  }
-
-  private determineTimeoutMillis() {
-    const timeoutMillis =
-      this._userProvidedConfiguration.timeoutMillis ??
-      this._fallbackConfiguration.timeoutMillis ??
-      DEFAULT_TIMEOUT;
-
-    if (
-      !Number.isNaN(timeoutMillis) &&
-      Number.isFinite(timeoutMillis) &&
-      timeoutMillis > 0
-    ) {
-      return timeoutMillis;
-    }
-    throw new Error(
-      `Configuration: timeoutMillis is invalid, expected number greater than 0 (actual: ${timeoutMillis})`
-    );
-  }
-
-  provide(): OtlpProtoMetricsConfiguration {
-    const concurrencyLimit =
-      this._userProvidedConfiguration.concurrencyLimit ??
-      this._fallbackConfiguration.concurrencyLimit ??
-      DEFAULT_CONCURRENCY_LIMIT;
-    const temporalitySelector =
-      this._userProvidedConfiguration.temporalitySelector ??
-      this._fallbackConfiguration.temporalitySelector ??
-      DEFAULT_TEMPORALITY_SELECTOR;
+  provide(): MetricsConfiguration {
     return {
-      url: this.determineUrl(),
-      headers: this.determineHeaders(),
-      compression: this.determineCompression(),
-      timeoutMillis: this.determineTimeoutMillis(),
-      concurrencyLimit,
-      temporalitySelector,
+      temporalitySelector:
+        this._userProvidedConfiguration.temporalitySelector ??
+        this._fallbackConfiguration.temporalitySelector ??
+        DEFAULT_TEMPORALITY_SELECTOR,
     };
   }
 }

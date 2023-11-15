@@ -14,13 +14,18 @@
  * limitations under the License.
  */
 
-import { AggregationTemporalitySelector } from '@opentelemetry/sdk-metrics';
 import { OtlpHttpConfiguration } from '../../common/http/configuration/configuration';
+import {
+  DEFAULT_COMPRESSION,
+  DEFAULT_CONCURRENCY_LIMIT,
+  DEFAULT_HEADERS,
+  DEFAULT_TIMEOUT,
+} from '../../common/http/configuration/defaulting-provider';
 
-export interface MetricsConfiguration {
-  temporalitySelector: AggregationTemporalitySelector;
-}
-
-export interface OtlpHttpMetricsConfiguration
-  extends OtlpHttpConfiguration,
-    MetricsConfiguration {}
+export const HTTP_METRICS_DEFAULT_CONFIGURATION: OtlpHttpConfiguration = {
+  url: 'http://localhost:4318/v1/metrics',
+  compression: DEFAULT_COMPRESSION,
+  concurrencyLimit: DEFAULT_CONCURRENCY_LIMIT,
+  headers: DEFAULT_HEADERS,
+  timeoutMillis: DEFAULT_TIMEOUT,
+};

@@ -21,11 +21,11 @@ import {
   LowMemoryTemporalitySelector,
 } from '../temporality-selectors';
 import { baggageUtils } from '@opentelemetry/core';
-import { OtlpProtoMetricsConfiguration } from '../types';
+import { OtlpHttpMetricsConfiguration } from '../types';
 import { IConfigurationProvider } from '../../../common/configuration/provider';
 
 export class EnvironmentOtlpProtoMetricsConfigurationProvider
-  implements IConfigurationProvider<Partial<OtlpProtoMetricsConfiguration>>
+  implements IConfigurationProvider<Partial<OtlpHttpMetricsConfiguration>>
 {
   private determineNonSpecificUrl() {
     const envUrl = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
@@ -138,7 +138,7 @@ export class EnvironmentOtlpProtoMetricsConfigurationProvider
     return specificCompression ?? nonSpecificCompression;
   }
 
-  provide(): Partial<OtlpProtoMetricsConfiguration> {
+  provide(): Partial<OtlpHttpMetricsConfiguration> {
     return {
       url: this.determineUrl() ?? this.determineNonSpecificUrl(),
       temporalitySelector: this.determineTemporalityPreference(),

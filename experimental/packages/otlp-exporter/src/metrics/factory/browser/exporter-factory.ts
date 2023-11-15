@@ -16,8 +16,8 @@
 
 import { PushMetricExporter } from '@opentelemetry/sdk-metrics';
 import { ExportPromiseQueue } from '../../../common/export-promise-queue';
-import { OtlpProtoMetricsConfiguration } from '../../configuration/types';
-import { DefaultingOtlpProtoMetricsConfigurationProvider } from '../../configuration/providers/defaulting';
+import { OtlpHttpMetricsConfiguration } from '../../configuration/types';
+import { DefaultingMetricsConfigurationProvider } from '../../configuration/providers/defaulting';
 import { createProtobufMetricsSerializer } from '../../protobuf/serialization-utils';
 import { RetryingTransport } from '../../../common/retrying-transport';
 import { XhrTransport } from '../../../common/http/browser/xhr-transport';
@@ -28,37 +28,47 @@ import { OTLPExportDelegate } from '../../../common/otlp-export-delegate';
 import { createJsonMetricsTransformer } from '../../json/metrics-transformer';
 import { createMetricsPartialSuccessHandler } from '../../partial-success-handler';
 import { OTLPMetricsExporter } from '../../otlp-metrics-exporter';
+import { DefaultingOtlpHttpConfigurationProvider } from '../../../common/http/configuration/defaulting-provider';
+import { HTTP_METRICS_DEFAULT_CONFIGURATION } from '../../configuration/default-configuration';
 
 export function createBrowserMetricsExporter(
-  options: Partial<OtlpProtoMetricsConfiguration>
+  options: Partial<OtlpHttpMetricsConfiguration>
 ): PushMetricExporter {
-  const configuration = new DefaultingOtlpProtoMetricsConfigurationProvider(
+  const metricsConfiguration = new DefaultingMetricsConfigurationProvider(
     options,
     {}
+  ).provide();
+
+  const httpConfiguration = new DefaultingOtlpHttpConfigurationProvider(
+    options,
+    {},
+    HTTP_METRICS_DEFAULT_CONFIGURATION
   ).provide();
 
   const useXHR =
     !!options.headers || typeof navigator.sendBeacon !== 'function';
 
-  let transport: IExporterTransport | undefined = undefined;
+  let transport: IExporterTransport | undefined;
   if (useXHR) {
     // only XHR needs to retry, sendBeacon does not get responses -> retry is just dead code there
     transport = new RetryingTransport(
       new XhrTransport({
-        url: configuration.url,
-        headers: configuration.headers,
-        timeoutMillis: configuration.timeoutMillis,
+        url: httpConfiguration.url,
+        headers: httpConfiguration.headers,
+        timeoutMillis: httpConfiguration.timeoutMillis,
         blobType: 'application/x-protobuf',
       })
     );
   } else {
     transport = new SendBeaconTransport({
-      url: configuration.url,
+      url: httpConfiguration.url,
       blobType: 'application/x-protobuf',
     });
   }
 
-  const promiseQueue = new ExportPromiseQueue(configuration.concurrencyLimit);
+  const promiseQueue = new ExportPromiseQueue(
+    httpConfiguration.concurrencyLimit
+  );
   const exporterDelegate = new OTLPExportDelegate(
     transport,
     createJsonMetricsTransformer(),
@@ -69,7 +79,7 @@ export function createBrowserMetricsExporter(
 
   const exporter = new OTLPMetricsExporter(
     exporterDelegate,
-    configuration.temporalitySelector
+    metricsConfiguration.temporalitySelector
   );
 
   addShutdownOnUnload(exporter);

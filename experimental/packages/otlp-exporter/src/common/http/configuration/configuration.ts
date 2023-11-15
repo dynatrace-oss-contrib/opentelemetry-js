@@ -14,13 +14,10 @@
  * limitations under the License.
  */
 
-import { AggregationTemporalitySelector } from '@opentelemetry/sdk-metrics';
-import { OtlpHttpConfiguration } from '../../common/http/configuration/configuration';
-
-export interface MetricsConfiguration {
-  temporalitySelector: AggregationTemporalitySelector;
+export interface OtlpHttpConfiguration {
+  url: string;
+  headers: Record<string, string>;
+  compression: 'gzip' | 'none';
+  timeoutMillis: number;
+  concurrencyLimit: number;
 }
-
-export interface OtlpHttpMetricsConfiguration
-  extends OtlpHttpConfiguration,
-    MetricsConfiguration {}
