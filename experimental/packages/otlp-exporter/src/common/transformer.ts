@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
+/**
+ * Transforms the internal signal-specific representation to a OTLP request representation
+ */
 export interface ITransformer<InternalSignalRepresentation, Request> {
-  transform(
-    internalRepresentation: InternalSignalRepresentation
-  ): Request;
+  transform(internalRepresentation: InternalSignalRepresentation): Request;
 }

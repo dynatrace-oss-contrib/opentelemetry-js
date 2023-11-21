@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 import type {
-  IExportResponse,
   HttpRequestParameters,
   sendWithHttp,
 } from '../http-transport-types';
@@ -24,6 +23,7 @@ import type { IExporterTransport } from '../../exporter-transport';
 // as they'd be imported before the http/https modules can be wrapped.
 import type * as https from 'https';
 import type * as http from 'http';
+import { ExportResponse } from '../../export-response';
 
 export class HttpExporterTransport implements IExporterTransport {
   private _send: sendWithHttp | null = null;
@@ -31,7 +31,7 @@ export class HttpExporterTransport implements IExporterTransport {
 
   constructor(private _parameters: HttpRequestParameters) {}
 
-  async send(buffer: Buffer): Promise<IExportResponse> {
+  async send(buffer: Buffer): Promise<ExportResponse> {
     if (this._send == null) {
       // Lazy require to ensure that http/https is not required before instrumentations can wrap it.
       const {
@@ -46,7 +46,7 @@ export class HttpExporterTransport implements IExporterTransport {
       this._send = sendWithHttp;
     }
 
-    return new Promise<IExportResponse>(resolve => {
+    return new Promise<ExportResponse>(resolve => {
       // this will always be defined
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       this._send?.(this._parameters, this._agent!, buffer, result => {

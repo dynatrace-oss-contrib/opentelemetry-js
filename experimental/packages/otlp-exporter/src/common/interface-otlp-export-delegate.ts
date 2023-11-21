@@ -16,6 +16,9 @@
 
 import { ExportResult } from '@opentelemetry/core';
 
+/**
+ * Internally shared export logic for OTLP.
+ */
 export interface IOLTPExportDelegate<Internal> {
   export(
     internalRepresentation: Internal,

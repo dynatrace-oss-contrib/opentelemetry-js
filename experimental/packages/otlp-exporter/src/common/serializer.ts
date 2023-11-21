@@ -13,6 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/**
+ * Serializes and deserializes the OTLP request/response to and from Buffers
+ */
 export interface ISerializer<Request, Response> {
   serializeRequest(request: Request): Uint8Array | undefined;
   deserializeResponse(data: Buffer): Response;

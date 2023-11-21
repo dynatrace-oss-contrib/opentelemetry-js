@@ -20,9 +20,13 @@ import { diag } from '@opentelemetry/api';
 import { IExportPromiseQueue } from './export-promise-queue';
 import { ISerializer } from './serializer';
 import { ITransformer } from './transformer';
-import { IExportResponseHandler } from './export-response-handler';
+import { IOTLPResponseHandler } from './response-handler';
 import { IOLTPExportDelegate } from './interface-otlp-export-delegate';
 
+/**
+ * Generic implementation for OTLP exports, this only contains parts of the OTLP export that are shared across all
+ * signals.
+ */
 export class OTLPExportDelegate<Internal, Request, Response>
   implements IOLTPExportDelegate<Internal>
 {
@@ -31,7 +35,7 @@ export class OTLPExportDelegate<Internal, Request, Response>
     private _transformer: ITransformer<Internal, Request>,
     private _serializer: ISerializer<Request, Response>,
     private _promiseQueue: IExportPromiseQueue,
-    private _responseHandler: IExportResponseHandler<Response>
+    private _responseHandler: IOTLPResponseHandler<Response>
   ) {}
 
   export(

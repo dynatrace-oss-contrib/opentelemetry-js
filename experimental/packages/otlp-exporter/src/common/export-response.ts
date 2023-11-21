@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-import { ExportResponse } from './export-response';
-
-export interface IExporterTransport {
-  send(buffer: Buffer): Promise<ExportResponse>;
+export interface ExportResponse {
+  status: 'success' | 'failure' | 'retryable';
+  data?: Buffer;
+  retryInMillis?: number;
+  error?: Error;
 }

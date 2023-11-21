@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 import { IExporterTransport } from '../exporter-transport';
-import { IExportResponse } from '../http/http-transport-types';
 
 // NOTE: do not change these type imports to actual imports. Doing so WILL break `@opentelemetry/instrumentation-http`,
 // as they'd be imported before the http/https modules can be wrapped.
 import type { Metadata, ServiceError, ChannelCredentials } from '@grpc/grpc-js';
+import { ExportResponse } from '../export-response';
 
 const GRPC_COMPRESSION_NONE = 0;
 const GRPC_COMPRESSION_GZIP = 2;
@@ -72,7 +72,7 @@ export class GrpcExporterTransport implements IExporterTransport {
     }
   ) {}
 
-  send(buffer: Buffer): Promise<IExportResponse> {
+  send(buffer: Buffer): Promise<ExportResponse> {
     if (this._client == null) {
       // Lazy require to ensure that grpc is not loaded before instrumentations can wrap it
       const {
@@ -100,7 +100,7 @@ export class GrpcExporterTransport implements IExporterTransport {
       );
     }
 
-    return new Promise<IExportResponse>(resolve => {
+    return new Promise<ExportResponse>(resolve => {
       // this will always be defined
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const deadline = Date.now() + this._parameters.timeoutMillis;

@@ -58,6 +58,22 @@ export class OTLPMetricExporter implements PushMetricExporter {
       selector = LowMemoryTemporalitySelector;
     }
 
+    // popluate keepAlive for use with new settings
+    if (config?.keepAlive != null) {
+      if (config.httpAgentOptions != null) {
+        if (config.httpAgentOptions.keepAlive == null) {
+          // specific setting is not set, populate with non-specific setting.
+          config.httpAgentOptions.keepAlive = config.keepAlive;
+        }
+        // do nothing, use specific setting otherwise
+      } else {
+        // populate specific option if AgentOptions does not exist.
+        config.httpAgentOptions = {
+          keepAlive: config.keepAlive,
+        };
+      }
+    }
+
     this._exporter = createOtlpMetricsExporter({
       url: config?.url,
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -67,6 +83,7 @@ export class OTLPMetricExporter implements PushMetricExporter {
       concurrencyLimit: config?.concurrencyLimit,
       timeoutMillis: config?.timeoutMillis,
       temporalitySelector: selector,
+      agentOptions: config?.httpAgentOptions,
     });
   }
 

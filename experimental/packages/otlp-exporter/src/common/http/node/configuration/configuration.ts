@@ -14,6 +14,14 @@
  * limitations under the License.
  */
 
-export interface IExportResponseHandler<Response> {
-  handleResponse(response: Response): void;
+// NOTE: do not change these type imports to actual imports. Doing so WILL break `@opentelemetry/instrumentation-http`,
+// as they'd be imported before the http/https modules can be wrapped.
+import type { AgentOptions as HttpAgentOptions } from 'http';
+import type { AgentOptions as HttpsAgentOptions } from 'https';
+
+/**
+ * Configuration options for backward compatibility with older exporters.
+ */
+export interface NodeHttpConfiguration {
+  agentOptions: HttpAgentOptions | HttpsAgentOptions;
 }

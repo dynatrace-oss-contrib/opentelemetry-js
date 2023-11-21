@@ -16,7 +16,7 @@
 
 import { ExportResult } from '@opentelemetry/core';
 import { IOLTPExportDelegate } from '../common/interface-otlp-export-delegate';
-import { LogRecordExporter, ReadableLogRecord} from '@opentelemetry/sdk-logs';
+import { LogRecordExporter, ReadableLogRecord } from '@opentelemetry/sdk-logs';
 
 // This is currently a placeholder so that signal-specific functionality can be added here in the future if needed.
 export class OTLPTracesExporter implements LogRecordExporter {

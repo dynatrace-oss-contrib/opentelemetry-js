@@ -15,7 +15,8 @@
  */
 
 import { IExporterTransport } from './exporter-transport';
-import { IExportResponse } from './http/http-transport-types';
+
+import { ExportResponse } from './export-response';
 
 const MAX_ATTEMPTS = 5;
 const INITIAL_BACKOFF = 1000;
@@ -28,21 +29,20 @@ const BACKOFF_MULTIPLIER = 1.5;
 export class RetryingTransport implements IExporterTransport {
   constructor(private _transport: IExporterTransport) {}
 
-  private retry(buffer: Buffer, inMillis: number): Promise<IExportResponse> {
+  private retry(buffer: Buffer, inMillis: number): Promise<ExportResponse> {
     return new Promise((resolve, reject) => {
-      // TODO: unref this timer? I'd say yes, because shutdown() should be called if waiting is desired.
       setTimeout(() => {
         this._transport.send(buffer).then(resolve, reject);
       }, inMillis);
     });
   }
 
-  async send(buffer: Buffer): Promise<IExportResponse> {
+  async send(buffer: Buffer): Promise<ExportResponse> {
     let result = await this._transport.send(buffer);
     let attempts = MAX_ATTEMPTS;
     let nextBackoff = INITIAL_BACKOFF;
 
-    // TODO: I'm not sure this is correct, someone needs review this in-depth.
+    // TODO: I'm not sure this is correct, please review in-depth.
     while (result.status === 'retryable' && attempts > 0) {
       attempts--;
       const upperBound = Math.min(nextBackoff, MAX_BACKOFF);

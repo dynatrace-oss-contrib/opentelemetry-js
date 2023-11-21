@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 import { IExporterTransport } from '../../exporter-transport';
-import { IExportResponse } from '../http-transport-types';
+
+import { ExportResponse } from '../../export-response';
 
 interface SendBeaconParams {
   url: string;
@@ -26,8 +27,8 @@ interface SendBeaconParams {
 
 export class SendBeaconTransport implements IExporterTransport {
   constructor(private _params: SendBeaconParams) {}
-  send(buffer: Buffer): Promise<IExportResponse> {
-    return new Promise<IExportResponse>(resolve => {
+  send(buffer: Buffer): Promise<ExportResponse> {
+    return new Promise<ExportResponse>(resolve => {
       if (
         navigator.sendBeacon(
           this._params.url,

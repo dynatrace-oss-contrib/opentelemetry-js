@@ -28,9 +28,11 @@ import { OTLPMetricsExporter } from '../../otlp-metrics-exporter';
 import { DefaultingOtlpHttpConfigurationProvider } from '../../../common/http/configuration/defaulting-provider';
 import { DefaultingMetricsConfigurationProvider } from '../../configuration/providers/defaulting';
 import { HTTP_METRICS_DEFAULT_CONFIGURATION } from '../../configuration/default-configuration';
+import { NodeHttpConfiguration } from '../../../common/http/node/configuration/configuration';
+import { DefaultingNodeHttpConfigurationProvider } from '../../../common/http/node/configuration/defaulting-provider';
 
 export function createOtlpMetricsExporter(
-  options: Partial<OtlpHttpMetricsConfiguration>
+  options: Partial<OtlpHttpMetricsConfiguration & NodeHttpConfiguration>
 ): PushMetricExporter {
   const environmentConfiguration =
     new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
@@ -46,12 +48,16 @@ export function createOtlpMetricsExporter(
     HTTP_METRICS_DEFAULT_CONFIGURATION
   ).provide();
 
+  const nodeHttpConfiguration = new DefaultingNodeHttpConfigurationProvider(
+    options
+  ).provide();
+
   const transport = new HttpExporterTransport({
     url: httpConfiguration.url,
     headers: httpConfiguration.headers,
     compression: httpConfiguration.compression,
     timeoutMillis: httpConfiguration.timeoutMillis,
-    agentOptions: { keepAlive: true },
+    agentOptions: nodeHttpConfiguration.agentOptions,
   });
 
   const retryingTransport = new RetryingTransport(transport);

@@ -16,9 +16,9 @@
 
 import { IExportLogsServiceResponse } from '@opentelemetry/otlp-transformer';
 import { diag } from '@opentelemetry/api';
-import { IExportResponseHandler } from '../common/export-response-handler';
+import { IOTLPResponseHandler } from '../common/response-handler';
 
-export function createLogPartialSuccessHandler(): IExportResponseHandler<IExportLogsServiceResponse> {
+export function createLogPartialSuccessHandler(): IOTLPResponseHandler<IExportLogsServiceResponse> {
   return {
     handleResponse(response: IExportLogsServiceResponse) {
       if (response.partialSuccess != null) {

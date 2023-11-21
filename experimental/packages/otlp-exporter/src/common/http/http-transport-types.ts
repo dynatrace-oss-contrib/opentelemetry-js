@@ -16,12 +16,13 @@
 
 import type * as http from 'http';
 import type * as https from 'https';
+import { ExportResponse } from '../export-response';
 
 export type sendWithHttp = (
   params: HttpRequestParameters,
   agent: http.Agent | https.Agent,
   data: Buffer,
-  onDone: (response: IExportResponse) => void
+  onDone: (response: ExportResponse) => void
 ) => void;
 
 export interface HttpRequestParameters {
@@ -30,11 +31,4 @@ export interface HttpRequestParameters {
   headers: Record<string, string>;
   compression: 'gzip' | 'none';
   agentOptions: http.AgentOptions | https.AgentOptions;
-}
-
-export interface IExportResponse {
-  status: 'success' | 'failure' | 'retryable';
-  data?: Buffer;
-  retryInMillis?: number;
-  error?: Error;
 }

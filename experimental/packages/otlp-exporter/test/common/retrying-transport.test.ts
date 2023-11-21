@@ -17,14 +17,14 @@
 import * as sinon from 'sinon';
 import * as assert from 'assert';
 import { IExporterTransport } from '../../src/common/exporter-transport';
-import { IExportResponse } from '../../src/common/http/http-transport-types';
 import { RetryingTransport } from '../../src/common/retrying-transport';
+import { ExportResponse } from '../../src/common/export-response';
 
 describe('RetryingTransport', function () {
   describe('send', function () {
     it('does not retry when underlying transport succeeds', async function () {
       // arrange
-      const expectedResponse: IExportResponse = {
+      const expectedResponse: ExportResponse = {
         status: 'success',
       };
       const mockData = Buffer.from([1, 2, 3]);
@@ -46,7 +46,7 @@ describe('RetryingTransport', function () {
 
     it('does not retry when underlying transport fails', async function () {
       // arrange
-      const expectedResponse: IExportResponse = {
+      const expectedResponse: ExportResponse = {
         status: 'failure',
       };
       const mockData = Buffer.from([1, 2, 3]);
@@ -87,10 +87,10 @@ describe('RetryingTransport', function () {
 
     it('does retry when the underlying transport returns retryable', async function () {
       // arrange
-      const retryResponse: IExportResponse = {
+      const retryResponse: ExportResponse = {
         status: 'retryable',
       };
-      const successResponse: IExportResponse = {
+      const successResponse: ExportResponse = {
         status: 'success',
       };
       const mockData = Buffer.from([1, 2, 3]);
@@ -118,7 +118,7 @@ describe('RetryingTransport', function () {
     it('does reject when the underlying transport rejects on retry', async function () {
       // arrange
       const expectedError = new Error('error');
-      const retryResponse: IExportResponse = {
+      const retryResponse: ExportResponse = {
         status: 'retryable',
       };
 
@@ -148,7 +148,7 @@ describe('RetryingTransport', function () {
       // make random return low values so that it does not actually need to wait long for the backoff.
       Math.random = sinon.stub().returns(0.001);
 
-      const retryResponse: IExportResponse = {
+      const retryResponse: ExportResponse = {
         status: 'retryable',
       };
 

@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 import { IExporterTransport } from '../../exporter-transport';
-import { IExportResponse } from '../http-transport-types';
 import {
   isExportRetryable,
   parseRetryAfterToMills,
 } from '../is-export-retryable';
+import { ExportResponse } from '../../export-response';
 
 export interface XhrRequestParameters {
   timeoutMillis: number;
@@ -33,8 +33,8 @@ export interface XhrRequestParameters {
 export class XhrTransport implements IExporterTransport {
   constructor(private _parameters: XhrRequestParameters) {}
 
-  send(buffer: Buffer): Promise<IExportResponse> {
-    return new Promise<IExportResponse>(resolve => {
+  send(buffer: Buffer): Promise<ExportResponse> {
+    return new Promise<ExportResponse>(resolve => {
       const xhr = new XMLHttpRequest();
       xhr.timeout = this._parameters.timeoutMillis;
       xhr.open('POST', this._parameters.url);

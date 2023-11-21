@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-import { ExportResponse } from './export-response';
-
-export interface IExporterTransport {
-  send(buffer: Buffer): Promise<ExportResponse>;
+/**
+ * Generic export response handler. Can be implemented to handle export responses like partial success.
+ */
+export interface IOTLPResponseHandler<Response> {
+  handleResponse(response: Response): void;
 }

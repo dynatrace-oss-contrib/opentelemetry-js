@@ -20,12 +20,12 @@ import * as assert from 'assert';
 import { IExporterTransport } from '../../src/common/exporter-transport';
 import { ISerializer } from '../../src/common/serializer';
 import { IExportPromiseQueue } from '../../src/common/export-promise-queue';
-import { IExportResponseHandler } from '../../src/common/export-response-handler';
+import { IOTLPResponseHandler } from '../../src/common/response-handler';
 import { ITransformer } from '../../src/common/transformer';
 import { ExportResultCode } from '@opentelemetry/core';
-import { IExportResponse } from '../../src/common/http/http-transport-types';
 import { diag } from '@opentelemetry/api';
 import { OTLPExportDelegate } from '../../src/common/otlp-export-delegate';
+import { ExportResponse } from '../../src/common/export-response';
 
 interface FakeInternalRepresentation {
   foo: string;
@@ -40,7 +40,7 @@ interface FakeSignalResponse {
 }
 
 type FakeSerializer = ISerializer<FakeSignalRequest, FakeSignalResponse>;
-type FakeResponseHandler = IExportResponseHandler<FakeSignalResponse>;
+type FakeResponseHandler = IOTLPResponseHandler<FakeSignalResponse>;
 type FakeTransformer = ITransformer<
   FakeInternalRepresentation,
   FakeSignalRequest
@@ -182,7 +182,7 @@ describe('OTLPExportDelegate', function () {
     });
 
     it('returns success if send promise resolves with success', function (done) {
-      const exportResponse: IExportResponse = {
+      const exportResponse: ExportResponse = {
         data: Buffer.from([]),
         status: 'success',
       };
@@ -248,7 +248,7 @@ describe('OTLPExportDelegate', function () {
     });
 
     it('returns failure if send promise resolves with failure', function (done) {
-      const exportResponse: IExportResponse = {
+      const exportResponse: ExportResponse = {
         data: Buffer.from([]),
         status: 'failure',
       };
@@ -314,7 +314,7 @@ describe('OTLPExportDelegate', function () {
     });
 
     it('returns failure if send promise resolves with retryable', function (done) {
-      const exportResponse: IExportResponse = {
+      const exportResponse: ExportResponse = {
         data: Buffer.from([]),
         status: 'retryable',
       };
@@ -381,7 +381,7 @@ describe('OTLPExportDelegate', function () {
 
     it('returns success if partial success is returned', function (done) {
       // returns full success response (empty body)
-      const exportResponse: IExportResponse = {
+      const exportResponse: ExportResponse = {
         data: Buffer.from([]),
         status: 'success',
       };
@@ -457,7 +457,7 @@ describe('OTLPExportDelegate', function () {
       const spyLoggerError = sinon.stub(diag, 'error');
 
       // returns full success response (empty body)
-      const exportResponse: IExportResponse = {
+      const exportResponse: ExportResponse = {
         data: Buffer.from([]),
         status: 'success',
       };
