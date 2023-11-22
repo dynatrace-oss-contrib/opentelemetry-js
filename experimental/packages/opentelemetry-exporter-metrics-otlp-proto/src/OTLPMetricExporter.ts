@@ -27,7 +27,7 @@ import {
   OTLPMetricExporterOptions,
 } from '@opentelemetry/exporter-metrics-otlp-http';
 import {
-  createOtlpMetricsExporter,
+  createOtlpProtoMetricsExporter,
   CumulativeTemporalitySelector,
   DeltaTemporalitySelector,
   LowMemoryTemporalitySelector,
@@ -74,7 +74,7 @@ export class OTLPMetricExporter implements PushMetricExporter {
       }
     }
 
-    this._exporter = createOtlpMetricsExporter({
+    this._exporter = createOtlpProtoMetricsExporter({
       url: config?.url,
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore headers will be the correct format

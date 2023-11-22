@@ -20,6 +20,11 @@ import { IConfigurationProvider } from '../../../common/configuration/provider';
 
 const DEFAULT_TEMPORALITY_SELECTOR = CumulativeTemporalitySelector;
 
+/**
+ * Handles merging user-provided, fallback, and default configurations metrics-specific exporters.
+ *
+ * @experimental
+ */
 export class DefaultingMetricsConfigurationProvider
   implements IConfigurationProvider<MetricsConfiguration>
 {

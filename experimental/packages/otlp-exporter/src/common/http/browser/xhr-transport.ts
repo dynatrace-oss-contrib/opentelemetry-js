@@ -64,7 +64,6 @@ export class XhrTransport implements IExporterTransport {
         } else {
           resolve({
             status: 'failure',
-            // TODO: add status code?
             error: new Error('XHR request failed with non-retryable status'),
           });
         }

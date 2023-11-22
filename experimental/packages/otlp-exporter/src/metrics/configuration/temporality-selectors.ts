@@ -20,9 +20,15 @@ import {
   InstrumentType,
 } from '@opentelemetry/sdk-metrics';
 
+/**
+ * @experimental
+ */
 export const CumulativeTemporalitySelector: AggregationTemporalitySelector =
   () => AggregationTemporality.CUMULATIVE;
 
+/**
+ * @experimental
+ */
 export const DeltaTemporalitySelector: AggregationTemporalitySelector = (
   instrumentType: InstrumentType
 ) => {
@@ -38,6 +44,9 @@ export const DeltaTemporalitySelector: AggregationTemporalitySelector = (
   }
 };
 
+/**
+ * @experimental
+ */
 export const LowMemoryTemporalitySelector: AggregationTemporalitySelector = (
   instrumentType: InstrumentType
 ) => {

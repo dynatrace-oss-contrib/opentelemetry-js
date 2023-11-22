@@ -18,33 +18,40 @@ import { PushMetricExporter } from '@opentelemetry/sdk-metrics';
 import { HttpExporterTransport } from '../../../common/http/node/http-exporter-transport';
 import { ExportPromiseQueue } from '../../../common/export-promise-queue';
 import { OtlpHttpMetricsConfiguration } from '../../configuration/types';
-import { EnvironmentOtlpProtoMetricsConfigurationProvider } from '../../configuration/providers/environment';
 import { createProtobufMetricsSerializer } from '../../protobuf/serialization-utils';
 import { RetryingTransport } from '../../../common/retrying-transport';
 import { OTLPExportDelegate } from '../../../common/otlp-export-delegate';
 import { createProtobufMetricsTransformer } from '../../protobuf/metrics-transformer';
 import { createMetricsPartialSuccessHandler } from '../../partial-success-handler';
-import { OTLPMetricsExporter } from '../../otlp-metrics-exporter';
+import { createOtlpMetricsExporter } from '../../otlp-metrics-exporter';
 import { DefaultingOtlpHttpConfigurationProvider } from '../../../common/http/configuration/defaulting-provider';
 import { DefaultingMetricsConfigurationProvider } from '../../configuration/providers/defaulting';
 import { HTTP_METRICS_DEFAULT_CONFIGURATION } from '../../configuration/default-configuration';
 import { NodeHttpConfiguration } from '../../../common/http/node/configuration/configuration';
 import { DefaultingNodeHttpConfigurationProvider } from '../../../common/http/node/configuration/defaulting-provider';
+import { EnvironmentOtlpHttpConfigurationProvider } from '../../../common/http/node/configuration/environment-provider';
+import { EnvironmentOtlpMetricsConfigurationProvider } from '../../configuration/providers/environment';
 
-export function createOtlpMetricsExporter(
+export function createOtlpProtoMetricsExporter(
   options: Partial<OtlpHttpMetricsConfiguration & NodeHttpConfiguration>
 ): PushMetricExporter {
-  const environmentConfiguration =
-    new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
+  const httpEnvironmentConfiguration =
+    new EnvironmentOtlpHttpConfigurationProvider(
+      'METRICS',
+      'v1/metrics'
+    ).provide();
+
+  const metricsEnvironmentConfiguration =
+    new EnvironmentOtlpMetricsConfigurationProvider().provide();
 
   const metricsConfiguration = new DefaultingMetricsConfigurationProvider(
     options,
-    environmentConfiguration
+    metricsEnvironmentConfiguration
   ).provide();
 
   const httpConfiguration = new DefaultingOtlpHttpConfigurationProvider(
     options,
-    environmentConfiguration,
+    httpEnvironmentConfiguration,
     HTTP_METRICS_DEFAULT_CONFIGURATION
   ).provide();
 
@@ -65,6 +72,7 @@ export function createOtlpMetricsExporter(
   const promiseQueue = new ExportPromiseQueue(
     httpConfiguration.concurrencyLimit
   );
+
   const exportDelegate = new OTLPExportDelegate(
     retryingTransport,
     createProtobufMetricsTransformer(),
@@ -73,7 +81,7 @@ export function createOtlpMetricsExporter(
     createMetricsPartialSuccessHandler()
   );
 
-  return new OTLPMetricsExporter(
+  return createOtlpMetricsExporter(
     exportDelegate,
     metricsConfiguration.temporalitySelector
   );

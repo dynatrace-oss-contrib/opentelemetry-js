@@ -27,7 +27,7 @@ import { addShutdownOnUnload } from '../../../common/browser/shutdown-on-unload'
 import { OTLPExportDelegate } from '../../../common/otlp-export-delegate';
 import { createJsonMetricsTransformer } from '../../json/metrics-transformer';
 import { createMetricsPartialSuccessHandler } from '../../partial-success-handler';
-import { OTLPMetricsExporter } from '../../otlp-metrics-exporter';
+import { createOtlpMetricsExporter } from '../../otlp-metrics-exporter';
 import { DefaultingOtlpHttpConfigurationProvider } from '../../../common/http/configuration/defaulting-provider';
 import { HTTP_METRICS_DEFAULT_CONFIGURATION } from '../../configuration/default-configuration';
 
@@ -77,7 +77,7 @@ export function createBrowserMetricsExporter(
     createMetricsPartialSuccessHandler()
   );
 
-  const exporter = new OTLPMetricsExporter(
+  const exporter = createOtlpMetricsExporter(
     exporterDelegate,
     metricsConfiguration.temporalitySelector
   );

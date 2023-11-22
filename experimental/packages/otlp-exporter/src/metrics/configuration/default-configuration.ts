@@ -22,6 +22,11 @@ import {
   DEFAULT_TIMEOUT,
 } from '../../common/http/configuration/defaulting-provider';
 
+/**
+ * Default configuration for HTTP Metrics
+ *
+ * @experimental
+ */
 export const HTTP_METRICS_DEFAULT_CONFIGURATION: OtlpHttpConfiguration = {
   url: 'http://localhost:4318/v1/metrics',
   compression: DEFAULT_COMPRESSION,

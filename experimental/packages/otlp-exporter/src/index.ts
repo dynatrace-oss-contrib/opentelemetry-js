@@ -15,7 +15,7 @@
  */
 
 export { OtlpHttpMetricsConfiguration } from './metrics/configuration/types';
-export { createOtlpMetricsExporter } from './metrics/factory/node/exporter-factory';
+export { createOtlpProtoMetricsExporter } from './metrics/factory/node/exporter-factory';
 export {
   LowMemoryTemporalitySelector,
   DeltaTemporalitySelector,

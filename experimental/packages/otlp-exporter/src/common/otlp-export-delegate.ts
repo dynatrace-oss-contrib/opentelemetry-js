@@ -21,7 +21,7 @@ import { IExportPromiseQueue } from './export-promise-queue';
 import { ISerializer } from './serializer';
 import { ITransformer } from './transformer';
 import { IOTLPResponseHandler } from './response-handler';
-import { IOLTPExportDelegate } from './interface-otlp-export-delegate';
+import { IOLTPExportDelegate } from './i-otlp-export-delegate';
 
 /**
  * Generic implementation for OTLP exports, this only contains parts of the OTLP export that are shared across all

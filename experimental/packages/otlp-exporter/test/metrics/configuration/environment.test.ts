@@ -15,7 +15,7 @@
  */
 
 import * as assert from 'assert';
-import { EnvironmentOtlpProtoMetricsConfigurationProvider } from '../../../src/metrics/configuration/providers/environment';
+import { EnvironmentOtlpMetricsConfigurationProvider } from '../../../src/metrics/configuration/providers/environment';
 import * as sinon from 'sinon';
 import { diag } from '@opentelemetry/api';
 import * as process from 'process';
@@ -26,291 +26,6 @@ import {
 } from '../../../src/metrics/configuration/temporality-selectors';
 
 describe('environment configuration provider', function () {
-  describe('headers', function () {
-    afterEach(function () {
-      delete process.env.OTEL_EXPORTER_OTLP_HEADERS;
-      delete process.env.OTEL_EXPORTER_OTLP_METRICS_HEADERS;
-    });
-
-    it('unset if env vars are not set', function () {
-      // ensure both are not set
-      delete process.env.OTEL_EXPORTER_OTLP_HEADERS;
-      delete process.env.OTEL_EXPORTER_OTLP_METRICS_HEADERS;
-
-      const config =
-        new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
-      assert.strictEqual(config.headers, undefined);
-    });
-
-    it('merges headers instead of overriding', function () {
-      process.env.OTEL_EXPORTER_OTLP_HEADERS = 'key1=value1,key2=value2';
-      process.env.OTEL_EXPORTER_OTLP_METRICS_HEADERS = 'key1=metrics';
-
-      const config =
-        new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
-      assert.deepEqual(config.headers, {
-        key1: 'metrics',
-        key2: 'value2',
-      });
-    });
-
-    it('allows non-specific only headers', function () {
-      process.env.OTEL_EXPORTER_OTLP_HEADERS = 'key1=value1,key2=value2';
-
-      const config =
-        new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
-      assert.deepEqual(config.headers, {
-        key1: 'value1',
-        key2: 'value2',
-      });
-    });
-
-    it('allows specific only headers', function () {
-      process.env.OTEL_EXPORTER_OTLP_METRICS_HEADERS =
-        'key1=value1,key2=value2';
-
-      const config =
-        new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
-      assert.deepEqual(config.headers, {
-        key1: 'value1',
-        key2: 'value2',
-      });
-    });
-  });
-
-  describe('url', function () {
-    afterEach(function () {
-      delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
-      delete process.env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT;
-      sinon.restore();
-    });
-
-    it('should use url defined in env that ends with root path and append version and signal path', function () {
-      process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'http://foo.bar/';
-      const config =
-        new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
-      assert.strictEqual(
-        config.url,
-        `${process.env.OTEL_EXPORTER_OTLP_ENDPOINT}v1/metrics`
-      );
-    });
-    it('should use url defined in env without checking if path is already present', function () {
-      process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'http://foo.bar/v1/metrics';
-      const config =
-        new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
-      assert.strictEqual(
-        config.url,
-        `${process.env.OTEL_EXPORTER_OTLP_ENDPOINT}/v1/metrics`
-      );
-    });
-    it('should use url defined in env and append version and signal', function () {
-      process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'http://foo.bar';
-      const config =
-        new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
-      assert.strictEqual(
-        config.url,
-        `${process.env.OTEL_EXPORTER_OTLP_ENDPOINT}/v1/metrics`
-      );
-    });
-    it('should override global exporter url with signal url defined in env', function () {
-      process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'http://foo.bar/';
-      process.env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT = 'http://foo.metrics/';
-      const config =
-        new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
-      assert.strictEqual(
-        config.url,
-        process.env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
-      );
-    });
-    it('should add root path when signal url defined in env contains no path and no root path', function () {
-      process.env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT = 'http://foo.bar';
-      const config =
-        new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
-      assert.strictEqual(
-        config.url,
-        `${process.env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT}/`
-      );
-    });
-    it('should not add root path when signal url defined in env contains root path but no path', function () {
-      process.env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT = 'http://foo.bar/';
-      const config =
-        new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
-      assert.strictEqual(
-        config.url,
-        `${process.env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT}`
-      );
-    });
-    it('should not add root path when signal url defined in env contains path', function () {
-      process.env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT =
-        'http://foo.bar/v1/metrics';
-      const config =
-        new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
-      assert.strictEqual(
-        config.url,
-        `${process.env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT}`
-      );
-    });
-    it('should not add root path when signal url defined in env contains path and ends in /', function () {
-      process.env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT =
-        'http://foo.bar/v1/metrics/';
-      const config =
-        new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
-      assert.strictEqual(
-        config.url,
-        `${process.env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT}`
-      );
-    });
-
-    it('should warn on invalid url', function () {
-      const spyLoggerWarn = sinon.stub(diag, 'warn');
-      process.env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT = 'not a url';
-      const config =
-        new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
-      assert.strictEqual(
-        config.url,
-        process.env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
-      );
-      assert.strictEqual(
-        spyLoggerWarn.args[0]?.[0],
-        "Configuration: Could not parse export URL: 'not a url', falling back to undefined"
-      );
-    });
-  });
-
-  describe('timeout', function () {
-    afterEach(function () {
-      delete process.env.OTEL_EXPORTER_OTLP_TIMEOUT;
-      delete process.env.OTEL_EXPORTER_OTLP_METRICS_TIMEOUT;
-      sinon.restore();
-    });
-
-    it('should not define timeoutMillis if no env var is set', function () {
-      const config =
-        new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
-      assert.strictEqual(config.timeoutMillis, undefined);
-    });
-
-    it('should use specific timeout value', function () {
-      process.env.OTEL_EXPORTER_OTLP_METRICS_TIMEOUT = '15000';
-      const config =
-        new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
-      assert.strictEqual(config.timeoutMillis, 15000);
-    });
-
-    it('should not define timeoutMillis when specific timeout value is negative', function () {
-      process.env.OTEL_EXPORTER_OTLP_METRICS_TIMEOUT = '-15000';
-      const config =
-        new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
-      assert.strictEqual(config.timeoutMillis, undefined);
-    });
-
-    it('should not define timeoutMillis when specific and non-specific timeout values are negative', function () {
-      const spyLoggerWarn = sinon.stub(diag, 'warn');
-      process.env.OTEL_EXPORTER_OTLP_METRICS_TIMEOUT = '-11000';
-      process.env.OTEL_EXPORTER_OTLP_TIMEOUT = '-9000';
-      const config =
-        new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
-      assert.strictEqual(
-        spyLoggerWarn.args[0]?.[0],
-        'Configuration: OTEL_EXPORTER_OTLP_METRICS_TIMEOUT is invalid, expected number greater than 0 (actual: -11000)'
-      );
-      assert.strictEqual(
-        spyLoggerWarn.args[1]?.[0],
-        'Configuration: OTEL_EXPORTER_OTLP_TIMEOUT is invalid, expected number greater than 0 (actual: -9000)'
-      );
-
-      assert.strictEqual(config.timeoutMillis, undefined);
-    });
-
-    it('should not define timeoutMillis when specific and non-specific timeout values are NaN', function () {
-      const spyLoggerWarn = sinon.stub(diag, 'warn');
-      process.env.OTEL_EXPORTER_OTLP_METRICS_TIMEOUT = 'NaN';
-      process.env.OTEL_EXPORTER_OTLP_TIMEOUT = 'foo';
-      const config =
-        new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
-      assert.strictEqual(
-        spyLoggerWarn.args[0]?.[0],
-        'Configuration: OTEL_EXPORTER_OTLP_METRICS_TIMEOUT is invalid, expected number greater than 0 (actual: NaN)'
-      );
-      assert.strictEqual(
-        spyLoggerWarn.args[1]?.[0],
-        'Configuration: OTEL_EXPORTER_OTLP_TIMEOUT is invalid, expected number greater than 0 (actual: foo)'
-      );
-
-      assert.strictEqual(config.timeoutMillis, undefined);
-    });
-    it('should not define timeoutMillis when specific and non-specific timeout values are infinite', function () {
-      const spyLoggerWarn = sinon.stub(diag, 'warn');
-      process.env.OTEL_EXPORTER_OTLP_METRICS_TIMEOUT = '-Infinitiy';
-      process.env.OTEL_EXPORTER_OTLP_TIMEOUT = 'Infinity';
-      const config =
-        new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
-      assert.strictEqual(
-        spyLoggerWarn.args[0]?.[0],
-        'Configuration: OTEL_EXPORTER_OTLP_METRICS_TIMEOUT is invalid, expected number greater than 0 (actual: -Infinitiy)'
-      );
-      assert.strictEqual(
-        spyLoggerWarn.args[1]?.[0],
-        'Configuration: OTEL_EXPORTER_OTLP_TIMEOUT is invalid, expected number greater than 0 (actual: Infinity)'
-      );
-
-      assert.strictEqual(config.timeoutMillis, undefined);
-    });
-  });
-
-  describe('compression', function () {
-    afterEach(function () {
-      delete process.env.OTEL_EXPORTER_OTLP_COMPRESSION;
-      delete process.env.OTEL_EXPORTER_OTLP_METRICS_COMPRESSION;
-      sinon.restore();
-    });
-
-    it('should not define compression if no env var is set', function () {
-      const config =
-        new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
-      assert.strictEqual(config.compression, undefined);
-    });
-    it('should use specific compression value', function () {
-      process.env.OTEL_EXPORTER_OTLP_METRICS_COMPRESSION = 'gzip';
-      const config =
-        new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
-      assert.strictEqual(config.compression, 'gzip');
-    });
-
-    it('should not define when specific compression value is invalid', function () {
-      const spyLoggerWarn = sinon.stub(diag, 'warn');
-      process.env.OTEL_EXPORTER_OTLP_METRICS_COMPRESSION = 'bla';
-      const config =
-        new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
-      assert.strictEqual(
-        spyLoggerWarn.args[0]?.[0],
-        "Configuration: OTEL_EXPORTER_OTLP_METRICS_COMPRESSION is invalid, expected 'none' or 'gzip' (actual: 'bla')"
-      );
-      assert.strictEqual(config.compression, undefined);
-    });
-
-    it('should not define when non-specific compression value is invalid', function () {
-      const spyLoggerWarn = sinon.stub(diag, 'warn');
-      process.env.OTEL_EXPORTER_OTLP_COMPRESSION = 'bla';
-      const config =
-        new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
-      assert.strictEqual(
-        spyLoggerWarn.args[0]?.[0],
-        "Configuration: OTEL_EXPORTER_OTLP_COMPRESSION is invalid, expected 'none' or 'gzip' (actual: 'bla')"
-      );
-      assert.strictEqual(config.compression, undefined);
-    });
-
-    it('should use signal specific over non-specific', function () {
-      process.env.OTEL_EXPORTER_OTLP_COMPRESSION = 'none';
-      process.env.OTEL_EXPORTER_OTLP_METRICS_COMPRESSION = 'gzip';
-
-      const config =
-        new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
-      assert.strictEqual(config.compression, 'gzip');
-    });
-  });
-
   describe('temporality selector', function () {
     afterEach(function () {
       delete process.env.OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE;
@@ -319,7 +34,7 @@ describe('environment configuration provider', function () {
 
     it('should not define temporality selector if no env var is set', function () {
       const config =
-        new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
+        new EnvironmentOtlpMetricsConfigurationProvider().provide();
       assert.strictEqual(config.temporalitySelector, undefined);
     });
 
@@ -327,7 +42,7 @@ describe('environment configuration provider', function () {
       const spyLoggerWarn = sinon.stub(diag, 'warn');
       process.env.OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE = 'foo';
       const config =
-        new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
+        new EnvironmentOtlpMetricsConfigurationProvider().provide();
       assert.strictEqual(
         spyLoggerWarn.args[0]?.[0],
         "Configuration: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE is set to 'foo', but only 'cumulative', 'delta', and 'lowmemory' are allowed."
@@ -339,7 +54,7 @@ describe('environment configuration provider', function () {
     it('should define delta temporality selector if env var is set to delta', function () {
       process.env.OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE = 'delta';
       const config =
-        new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
+        new EnvironmentOtlpMetricsConfigurationProvider().provide();
       assert.strictEqual(config.temporalitySelector, DeltaTemporalitySelector);
     });
 
@@ -347,7 +62,7 @@ describe('environment configuration provider', function () {
       process.env.OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE =
         'cumulative';
       const config =
-        new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
+        new EnvironmentOtlpMetricsConfigurationProvider().provide();
       assert.strictEqual(
         config.temporalitySelector,
         CumulativeTemporalitySelector
@@ -358,7 +73,7 @@ describe('environment configuration provider', function () {
       process.env.OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE =
         'lowmemory';
       const config =
-        new EnvironmentOtlpProtoMetricsConfigurationProvider().provide();
+        new EnvironmentOtlpMetricsConfigurationProvider().provide();
       assert.strictEqual(
         config.temporalitySelector,
         LowMemoryTemporalitySelector
