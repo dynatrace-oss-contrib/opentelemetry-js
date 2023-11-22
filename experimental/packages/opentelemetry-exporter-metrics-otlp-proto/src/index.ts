@@ -14,4 +14,7 @@
  * limitations under the License.
  */
 
-export * from './OTLPMetricExporter';
+// Legacy
+export { OTLPMetricExporter } from './OTLPMetricExporter';
+
+export { createOtlpProtoMetricsExporter } from '@opentelemetry/otlp-exporter';

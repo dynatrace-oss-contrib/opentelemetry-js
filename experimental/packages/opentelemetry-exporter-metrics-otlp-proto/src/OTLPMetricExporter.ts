@@ -34,6 +34,14 @@ import {
 } from '@opentelemetry/otlp-exporter';
 import { ExportResult } from '@opentelemetry/core';
 
+/**
+ * Legacy OTLPMetricExporter.
+ *  - This method of constructing an exporter will continue to be supported in 1.0 of this
+ * package, but no new features will be added.
+ *  - This method of constructing the exporter will be dropped with 2.0.
+ *
+ * Please use {@link createOtlpProtoMetricsExporter} instead.
+ */
 export class OTLPMetricExporter implements PushMetricExporter {
   private _exporter: PushMetricExporter;
 
