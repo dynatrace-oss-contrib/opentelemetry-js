@@ -18,7 +18,7 @@ import { PushMetricExporter } from '@opentelemetry/sdk-metrics';
 import { ExportPromiseQueue } from '../../../common/export-promise-queue';
 import { OtlpHttpMetricsConfiguration } from '../../configuration/types';
 import { DefaultingMetricsConfigurationProvider } from '../../configuration/providers/defaulting';
-import { createProtobufMetricsSerializer } from '../../protobuf/serialization-utils';
+import { createProtobufMetricsSerializer } from '../../protobuf/metrics-serializer';
 import { RetryingTransport } from '../../../common/retrying-transport';
 import { XhrTransport } from '../../../common/http/browser/xhr-transport';
 import { IExporterTransport } from '../../../common/exporter-transport';

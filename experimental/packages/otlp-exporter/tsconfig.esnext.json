@@ -1,7 +1,7 @@
 {
   "extends": "../../../tsconfig.base.esnext.json",
   "compilerOptions": {
-    "allowJs": true,
+    //"allowJs": true,
     "outDir": "build/esnext",
     "rootDir": "src",
     "tsBuildInfoFile": "build/esnext/tsconfig.esnext.tsbuildinfo"

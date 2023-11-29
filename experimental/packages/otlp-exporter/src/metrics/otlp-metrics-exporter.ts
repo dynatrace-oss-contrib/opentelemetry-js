@@ -20,15 +20,21 @@ import {
   ResourceMetrics,
 } from '@opentelemetry/sdk-metrics';
 import { IOLTPExportDelegate } from '../common/i-otlp-export-delegate';
+import { ExportResult } from '@opentelemetry/core';
+import { InstrumentType } from '@opentelemetry/sdk-metrics/build/src/InstrumentDescriptor';
 
 export function createOtlpMetricsExporter(
   delegate: IOLTPExportDelegate<ResourceMetrics>,
   temporalitySelector: AggregationTemporalitySelector
 ): PushMetricExporter {
   return {
-    export: delegate.export,
-    selectAggregationTemporality: temporalitySelector,
-    forceFlush: delegate.forceFlush,
-    shutdown: delegate.shutdown,
+    export: (
+      metrics: ResourceMetrics,
+      resultCallback: (result: ExportResult) => void
+    ) => delegate.export(metrics, resultCallback),
+    selectAggregationTemporality: (instrumentType: InstrumentType) =>
+      temporalitySelector(instrumentType),
+    forceFlush: () => delegate.forceFlush(),
+    shutdown: () => delegate.shutdown(),
   };
 }

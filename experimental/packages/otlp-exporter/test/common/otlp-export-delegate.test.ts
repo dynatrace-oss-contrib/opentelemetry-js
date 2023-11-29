@@ -55,6 +55,104 @@ const requestRepresentation: FakeSignalRequest = {
 };
 
 describe('OTLPExportDelegate', function () {
+  describe('forceFlush', function () {
+    afterEach(function () {
+      sinon.restore();
+    });
+
+    it('awaits promise queue', async function () {
+      // transport does not need to do anything in this case.
+      const transportStubs = {
+        send: sinon.stub(),
+      };
+      const mockTransport = <IExporterTransport>transportStubs;
+
+      const serializerStubs = {
+        serializeRequest: sinon.stub(),
+        deserializeResponse: sinon.stub(),
+      };
+      const mockSerializer = <FakeSerializer>serializerStubs;
+
+      // promise queue has not reached capacity yet
+      const promiseQueueStubs = {
+        pushPromise: sinon.stub(),
+        hasReachedLimit: sinon.stub(),
+        awaitAll: sinon.stub().returns(Promise.resolve()),
+      };
+      const promiseQueue = <IExportPromiseQueue>promiseQueueStubs;
+
+      const responseHandlerStubs = {
+        handleResponse: sinon.stub(),
+      };
+      const responseHandler = <FakeResponseHandler>responseHandlerStubs;
+
+      const transformerStubs = {
+        transform: sinon.stub(),
+      };
+      const transformer = <FakeTransformer>transformerStubs;
+
+      const exporter = new OTLPExportDelegate(
+        mockTransport,
+        transformer,
+        mockSerializer,
+        promiseQueue,
+        responseHandler
+      );
+
+      await exporter.forceFlush();
+      sinon.assert.calledOnce(promiseQueueStubs.awaitAll);
+    });
+  });
+
+  describe('shutdown', function () {
+    afterEach(function () {
+      sinon.restore();
+    });
+
+    it('awaits promise queue', async function () {
+      // transport does not need to do anything in this case.
+      const transportStubs = {
+        send: sinon.stub(),
+      };
+      const mockTransport = <IExporterTransport>transportStubs;
+
+      const serializerStubs = {
+        serializeRequest: sinon.stub(),
+        deserializeResponse: sinon.stub(),
+      };
+      const mockSerializer = <FakeSerializer>serializerStubs;
+
+      // promise queue has not reached capacity yet
+      const promiseQueueStubs = {
+        pushPromise: sinon.stub(),
+        hasReachedLimit: sinon.stub(),
+        awaitAll: sinon.stub().returns(Promise.resolve()),
+      };
+      const promiseQueue = <IExportPromiseQueue>promiseQueueStubs;
+
+      const responseHandlerStubs = {
+        handleResponse: sinon.stub(),
+      };
+      const responseHandler = <FakeResponseHandler>responseHandlerStubs;
+
+      const transformerStubs = {
+        transform: sinon.stub(),
+      };
+      const transformer = <FakeTransformer>transformerStubs;
+
+      const exporter = new OTLPExportDelegate(
+        mockTransport,
+        transformer,
+        mockSerializer,
+        promiseQueue,
+        responseHandler
+      );
+
+      await exporter.shutdown();
+      sinon.assert.calledOnce(promiseQueueStubs.awaitAll);
+    });
+  });
+
   describe('export', function () {
     afterEach(function () {
       sinon.restore();

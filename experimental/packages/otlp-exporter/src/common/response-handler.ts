@@ -16,6 +16,8 @@
 
 /**
  * Generic export response handler. Can be implemented to handle export responses like partial success.
+ *
+ * @experimental
  */
 export interface IOTLPResponseHandler<Response> {
   handleResponse(response: Response): void;

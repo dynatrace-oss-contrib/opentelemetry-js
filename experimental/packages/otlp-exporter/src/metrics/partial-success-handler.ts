@@ -21,7 +21,10 @@ import { IOTLPResponseHandler } from '../common/response-handler';
 export function createMetricsPartialSuccessHandler(): IOTLPResponseHandler<IExportMetricsServiceResponse> {
   return {
     handleResponse(response: IExportMetricsServiceResponse) {
-      if (response.partialSuccess != null) {
+      if (
+        response.partialSuccess?.errorMessage != null ||
+        response.partialSuccess?.rejectedDataPoints != null
+      ) {
         diag.warn(
           `Export succeeded partially, rejected data points: ${response.partialSuccess.rejectedDataPoints}, message:\n${response.partialSuccess.errorMessage}`
         );
