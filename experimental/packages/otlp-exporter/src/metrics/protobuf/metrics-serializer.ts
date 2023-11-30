@@ -15,6 +15,7 @@
  */
 import {
   ExportMetricsServiceRequest,
+  ExportMetricsServiceResponse,
   IExportMetricsServiceRequest as ProtobufServiceRequest,
 } from '@opentelemetry/otlp-proto-exporter-base';
 import {
@@ -43,5 +44,7 @@ function serializeRequest(
 }
 
 function deserializeResponse(data: Uint8Array): IExportMetricsServiceResponse {
-  return exportResponseType.decode(data) as IExportMetricsServiceResponse;
+  return ExportMetricsServiceResponse.decode(
+    data
+  ) as IExportMetricsServiceResponse;
 }
