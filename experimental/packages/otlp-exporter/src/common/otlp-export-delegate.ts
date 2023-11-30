@@ -64,7 +64,7 @@ export class OTLPExportDelegate<Internal, Request, Response>
     }
 
     this._promiseQueue.pushPromise(
-      this._transport.send(Buffer.from(serializedRequest)).then(
+      this._transport.send(serializedRequest).then(
         response => {
           if (response.data) {
             try {

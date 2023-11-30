@@ -16,7 +16,7 @@
 
 export interface ExportResponse {
   status: 'success' | 'failure' | 'retryable';
-  data?: Buffer;
+  data?: Uint8Array;
   retryInMillis?: number;
   error?: Error;
 }

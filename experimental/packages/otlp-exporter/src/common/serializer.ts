@@ -19,5 +19,5 @@
  */
 export interface ISerializer<Request, Response> {
   serializeRequest(request: Request): Uint8Array | undefined;
-  deserializeResponse(data: Buffer): Response;
+  deserializeResponse(data: Uint8Array): Response;
 }

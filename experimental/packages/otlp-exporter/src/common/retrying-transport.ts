@@ -29,16 +29,16 @@ const BACKOFF_MULTIPLIER = 1.5;
 export class RetryingTransport implements IExporterTransport {
   constructor(private _transport: IExporterTransport) {}
 
-  private retry(buffer: Buffer, inMillis: number): Promise<ExportResponse> {
+  private retry(data: Uint8Array, inMillis: number): Promise<ExportResponse> {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
-        this._transport.send(buffer).then(resolve, reject);
+        this._transport.send(data).then(resolve, reject);
       }, inMillis);
     });
   }
 
-  async send(buffer: Buffer): Promise<ExportResponse> {
-    let result = await this._transport.send(buffer);
+  async send(data: Uint8Array): Promise<ExportResponse> {
+    let result = await this._transport.send(data);
     let attempts = MAX_ATTEMPTS;
     let nextBackoff = INITIAL_BACKOFF;
 
@@ -48,7 +48,7 @@ export class RetryingTransport implements IExporterTransport {
       const upperBound = Math.min(nextBackoff, MAX_BACKOFF);
       const backoff = Math.random() * upperBound;
       nextBackoff = nextBackoff * BACKOFF_MULTIPLIER;
-      result = await this.retry(buffer, result.retryInMillis ?? backoff);
+      result = await this.retry(data, result.retryInMillis ?? backoff);
     }
 
     return result;

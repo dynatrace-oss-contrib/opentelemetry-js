@@ -27,7 +27,7 @@ describe('RetryingTransport', function () {
       const expectedResponse: ExportResponse = {
         status: 'success',
       };
-      const mockData = Buffer.from([1, 2, 3]);
+      const mockData = Uint8Array.from([1, 2, 3]);
 
       const transportStubs = {
         // make transport succeed
@@ -49,7 +49,7 @@ describe('RetryingTransport', function () {
       const expectedResponse: ExportResponse = {
         status: 'failure',
       };
-      const mockData = Buffer.from([1, 2, 3]);
+      const mockData = Uint8Array.from([1, 2, 3]);
 
       const transportStubs = {
         // make transport fail
@@ -69,7 +69,7 @@ describe('RetryingTransport', function () {
     it('does not retry when underlying transport rejects', async function () {
       // arrange
       const expectedError = new Error('error');
-      const mockData = Buffer.from([1, 2, 3]);
+      const mockData = Uint8Array.from([1, 2, 3]);
 
       const transportStubs = {
         // make transport reject
@@ -93,7 +93,7 @@ describe('RetryingTransport', function () {
       const successResponse: ExportResponse = {
         status: 'success',
       };
-      const mockData = Buffer.from([1, 2, 3]);
+      const mockData = Uint8Array.from([1, 2, 3]);
 
       const transportStubs = {
         send: sinon
@@ -122,7 +122,7 @@ describe('RetryingTransport', function () {
         status: 'retryable',
       };
 
-      const mockData = Buffer.from([1, 2, 3]);
+      const mockData = Uint8Array.from([1, 2, 3]);
 
       const transportStubs = {
         send: sinon
@@ -152,7 +152,7 @@ describe('RetryingTransport', function () {
         status: 'retryable',
       };
 
-      const mockData = Buffer.from([1, 2, 3]);
+      const mockData = Uint8Array.from([1, 2, 3]);
 
       const transportStubs = {
         send: sinon.stub().resolves(retryResponse),

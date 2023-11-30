@@ -17,5 +17,5 @@
 import { ExportResponse } from './export-response';
 
 export interface IExporterTransport {
-  send(buffer: Buffer): Promise<ExportResponse>;
+  send(data: Uint8Array): Promise<ExportResponse>;
 }

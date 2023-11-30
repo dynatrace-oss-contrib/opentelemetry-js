@@ -86,7 +86,7 @@ describe('HttpExporterTransport', function () {
         compression: 'none',
       });
 
-      exporterTransport.send(Buffer.from(expectedData)).then(
+      exporterTransport.send(Uint8Array.from(expectedData)).then(
         result => {
           try {
             assert.deepEqual(result.status, 'success');

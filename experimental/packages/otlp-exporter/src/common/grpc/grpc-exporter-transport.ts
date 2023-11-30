@@ -23,7 +23,7 @@ import { ExportResponse } from '../export-response';
 const GRPC_COMPRESSION_NONE = 0;
 const GRPC_COMPRESSION_GZIP = 2;
 
-function toGrpcCompression(compression: 'none' | 'gzip'): number {
+function toGrpcCompression(compression: 'gzip' | 'none'): number {
   if (compression === 'none') {
     return GRPC_COMPRESSION_NONE;
   } else if (compression === 'gzip') {
@@ -58,21 +58,24 @@ export class GrpcExporterTransport implements IExporterTransport {
       grpcName: string;
       address: string;
       /**
-       * NOTE: Ensure that you're only importing/requiring gRPC in the function providing the channel credentials,
+       * NOTE: Ensure that you're only importing/requiring gRPC inside the function providing the channel credentials,
        * otherwise, gRPC and http/https instrumentations may break.
        */
       credentials: () => ChannelCredentials;
       /**
-       * NOTE: Ensure that you're only importing/requiring gRPC in the function providing the metadata,
+       * NOTE: Ensure that you're only importing/requiring gRPC inside the function providing the metadata,
        * otherwise, gRPC and http/https instrumentations may break.
        */
       metadata: () => Metadata;
-      compression: 'none' | 'gzip';
+      compression: 'gzip' | 'none';
       timeoutMillis: number;
     }
   ) {}
 
-  send(buffer: Buffer): Promise<ExportResponse> {
+  send(data: Uint8Array): Promise<ExportResponse> {
+    // We need to make a for gRPC
+    const buffer = Buffer.from(data.buffer);
+
     if (this._client == null) {
       // Lazy require to ensure that grpc is not loaded before instrumentations can wrap it
       const {

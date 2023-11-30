@@ -33,6 +33,6 @@ function serializeRequest(
   return Buffer.from(JSON.stringify(request));
 }
 
-function deserializeResponse(data: Buffer): IExportLogsServiceResponse {
+function deserializeResponse(data: Uint8Array): IExportLogsServiceResponse {
   return JSON.parse(data.toString());
 }

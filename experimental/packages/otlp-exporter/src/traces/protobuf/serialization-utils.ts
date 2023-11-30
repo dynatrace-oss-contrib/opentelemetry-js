@@ -42,10 +42,9 @@ function serializeRequest(
   return undefined;
 }
 
-function deserializeResponse(data: Buffer): IExportTraceServiceResponse {
+function deserializeResponse(data: Uint8Array): IExportTraceServiceResponse {
   const exportResponseType =
     root.opentelemetry.proto.collector.trace.v1.ExportTraceServiceResponse;
 
-  // TODO: May not deal well with null values (incompatible)
   return exportResponseType.decode(data) as IExportTraceServiceResponse;
 }

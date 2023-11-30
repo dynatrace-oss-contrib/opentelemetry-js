@@ -33,7 +33,7 @@ export interface XhrRequestParameters {
 export class XhrTransport implements IExporterTransport {
   constructor(private _parameters: XhrRequestParameters) {}
 
-  send(buffer: Buffer): Promise<ExportResponse> {
+  send(data: Uint8Array): Promise<ExportResponse> {
     return new Promise<ExportResponse>(resolve => {
       const xhr = new XMLHttpRequest();
       xhr.timeout = this._parameters.timeoutMillis;
@@ -82,7 +82,7 @@ export class XhrTransport implements IExporterTransport {
         });
       };
 
-      xhr.send(new Blob([buffer], { type: this._parameters.blobType }));
+      xhr.send(new Blob([data], { type: this._parameters.blobType }));
     });
   }
 }

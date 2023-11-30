@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 import { IExporterTransport } from '../../exporter-transport';
-
 import { ExportResponse } from '../../export-response';
 
 interface SendBeaconParams {
@@ -27,12 +26,12 @@ interface SendBeaconParams {
 
 export class SendBeaconTransport implements IExporterTransport {
   constructor(private _params: SendBeaconParams) {}
-  send(buffer: Buffer): Promise<ExportResponse> {
+  send(data: Uint8Array): Promise<ExportResponse> {
     return new Promise<ExportResponse>(resolve => {
       if (
         navigator.sendBeacon(
           this._params.url,
-          new Blob([buffer], { type: this._params.blobType })
+          new Blob([data], { type: this._params.blobType })
         )
       ) {
         // no way to signal retry, treat everything as success

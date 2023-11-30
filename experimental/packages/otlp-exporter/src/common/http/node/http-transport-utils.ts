@@ -38,7 +38,7 @@ export const DEFAULT_EXPORT_BACKOFF_MULTIPLIER = 1.5;
 export function sendWithHttp(
   params: HttpRequestParameters,
   agent: http.Agent | https.Agent,
-  data: Buffer,
+  data: Uint8Array,
   onDone: (response: ExportResponse) => void
 ): void {
   const parsedUrl = new URL(params.url);
@@ -111,10 +111,10 @@ export function sendWithHttp(
 function compressAndSend(
   req: http.ClientRequest,
   compression: 'gzip' | 'none',
-  data: Buffer,
+  data: Uint8Array,
   onError: (error: Error) => void
 ) {
-  let dataStream = readableFromBuffer(data);
+  let dataStream = readableFromUint8Array(data);
 
   if (compression === 'gzip') {
     req.setHeader('Content-Encoding', 'gzip');
@@ -127,7 +127,7 @@ function compressAndSend(
   dataStream.pipe(req);
 }
 
-function readableFromBuffer(buff: string | Buffer): Readable {
+function readableFromUint8Array(buff: string | Uint8Array): Readable {
   const readable = new Readable();
   readable.push(buff);
   readable.push(null);

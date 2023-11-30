@@ -21,7 +21,7 @@ import { ExportResponse } from '../export-response';
 export type sendWithHttp = (
   params: HttpRequestParameters,
   agent: http.Agent | https.Agent,
-  data: Buffer,
+  data: Uint8Array,
   onDone: (response: ExportResponse) => void
 ) => void;
 
