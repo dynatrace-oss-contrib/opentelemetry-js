@@ -27,7 +27,10 @@ export function createTracesTransformer(): ITransformer<
 > {
   return {
     transform: (spans: ReadableSpan[]) => {
-      return createExportTraceServiceRequest(spans, true);
+      return createExportTraceServiceRequest(spans, {
+        useHex: true,
+        useLongBits: false,
+      });
     },
   };
 }

@@ -27,7 +27,10 @@ export function createLogsTransformer(): ITransformer<
 > {
   return {
     transform: (logs: ReadableLogRecord[]) => {
-      return createExportLogsServiceRequest(logs, true);
+      return createExportLogsServiceRequest(logs, {
+        useHex: true,
+        useLongBits: false,
+      });
     },
   };
 }

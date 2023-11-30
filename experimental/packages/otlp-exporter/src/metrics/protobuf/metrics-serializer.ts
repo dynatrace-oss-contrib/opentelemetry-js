@@ -13,7 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import * as root from '../../generated/root';
+import {
+  ExportMetricsServiceRequest,
+  IExportMetricsServiceRequest as ProtobufServiceRequest,
+} from '@opentelemetry/otlp-proto-exporter-base';
 import {
   IExportMetricsServiceRequest,
   IExportMetricsServiceResponse,
@@ -30,21 +33,15 @@ export function createProtobufMetricsSerializer(): IMetricsSerializer {
 function serializeRequest(
   request: IExportMetricsServiceRequest
 ): Uint8Array | undefined {
-  const exportRequestType =
-    root.opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceRequest;
-
-  const message = exportRequestType.create(
-    request as root.opentelemetry.proto.collector.metrics.v1.IExportMetricsServiceRequest
+  const message = ExportMetricsServiceRequest.create(
+    request as ProtobufServiceRequest
   );
   if (message) {
-    return exportRequestType.encode(message).finish();
+    return ExportMetricsServiceRequest.encode(message).finish();
   }
   return undefined;
 }
 
 function deserializeResponse(data: Uint8Array): IExportMetricsServiceResponse {
-  const exportResponseType =
-    root.opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceResponse;
-
   return exportResponseType.decode(data) as IExportMetricsServiceResponse;
 }
