@@ -14,4 +14,18 @@
  * limitations under the License.
  */
 
-export * from '../../legacy/platform/browser';
+// Legacy
+export * from './platform';
+export { OTLPExporterBase } from './OTLPExporterBase';
+export {
+  OTLPExporterError,
+  OTLPExporterConfigBase,
+  ExportServiceError,
+} from './types';
+export {
+  parseHeaders,
+  appendResourcePathToUrl,
+  appendRootPathToUrlIfNeeded,
+  configureExporterTimeout,
+  invalidTimeout,
+} from './util';

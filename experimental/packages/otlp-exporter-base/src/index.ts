@@ -14,18 +14,22 @@
  * limitations under the License.
  */
 
-// Legacy
-export * from './platform';
-export { OTLPExporterBase } from './OTLPExporterBase';
+// Legacy exports scheduled for removal.
+export * from './legacy';
+
+// Re-implemented shared exporter code
 export {
-  OTLPExporterError,
-  OTLPExporterConfigBase,
-  ExportServiceError,
-} from './types';
+  IExportPromiseQueue,
+  ExportPromiseQueue,
+} from './common/export-promise-queue';
+
+export { ExportResponse } from './common/export-response';
+export { IExporterTransport } from './common/exporter-transport';
 export {
-  parseHeaders,
-  appendResourcePathToUrl,
-  appendRootPathToUrlIfNeeded,
-  configureExporterTimeout,
-  invalidTimeout,
-} from './util';
+  IOLTPExportDelegate,
+  OTLPExportDelegate,
+} from './common/otlp-export-delegate';
+export { IOTLPResponseHandler } from './common/response-handler';
+export { RetryingTransport } from './common/retrying-transport';
+export { ISerializer } from './common/serializer';
+export { ITransformer } from './common/transformer';

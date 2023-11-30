@@ -15,16 +15,19 @@
  */
 
 import * as assert from 'assert';
-import { configureExporterTimeout, invalidTimeout } from '../../src/util';
-import { sendWithHttp } from '../../src/platform/node/util';
-import { CompressionAlgorithm } from '../../src/platform/node/types';
-import { configureCompression } from '../../src/platform/node/util';
+import {
+  configureExporterTimeout,
+  invalidTimeout,
+} from '../../../src/legacy/util';
+import { sendWithHttp } from '../../../src/legacy/platform/node/util';
+import { CompressionAlgorithm } from '../../../src/legacy/platform/node/types';
+import { configureCompression } from '../../../src/legacy/platform/node/util';
 import { diag } from '@opentelemetry/api';
 import * as sinon from 'sinon';
 
-import { OTLPExporterNodeBase } from '../../src/platform/node/OTLPExporterNodeBase';
-import { OTLPExporterNodeConfigBase } from '../../src/platform/node/types';
-import { OTLPExporterError } from '../../src/types';
+import { OTLPExporterNodeBase } from '../../../src/legacy/platform/node/OTLPExporterNodeBase';
+import { OTLPExporterNodeConfigBase } from '../../../src/legacy/platform/node/types';
+import { OTLPExporterError } from '../../../src//legacy/types';
 import { PassThrough } from 'stream';
 import * as http from 'http';
 import * as zlib from 'zlib';

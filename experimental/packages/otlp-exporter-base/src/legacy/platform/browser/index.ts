@@ -14,16 +14,5 @@
  * limitations under the License.
  */
 
-import { ExportResult } from '@opentelemetry/core';
-
-/**
- * Internally shared export logic for OTLP.
- */
-export interface IOLTPExportDelegate<Internal> {
-  export(
-    internalRepresentation: Internal,
-    resultCallback: (result: ExportResult) => void
-  ): void;
-  forceFlush(): Promise<void>;
-  shutdown(): Promise<void>;
-}
+export { OTLPExporterBrowserBase } from './OTLPExporterBrowserBase';
+export { sendWithXhr } from './util';
