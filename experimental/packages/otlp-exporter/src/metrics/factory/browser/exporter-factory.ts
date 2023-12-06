@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+/*
 import { PushMetricExporter } from '@opentelemetry/sdk-metrics';
 import { ExportPromiseQueue } from '../../../common/export-promise-queue';
 import { OtlpHttpMetricsConfiguration } from '../../configuration/types';
@@ -86,3 +86,4 @@ export function createBrowserMetricsExporter(
 
   return exporter;
 }
+*/

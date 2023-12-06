@@ -13,12 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { IExporterTransport } from '../exporter-transport';
+import {
+  IExporterTransport,
+  ExportResponse,
+} from '@opentelemetry/otlp-exporter-base';
 
 // NOTE: do not change these type imports to actual imports. Doing so WILL break `@opentelemetry/instrumentation-http`,
 // as they'd be imported before the http/https modules can be wrapped.
 import type { Metadata, ServiceError, ChannelCredentials } from '@grpc/grpc-js';
-import { ExportResponse } from '../export-response';
 
 const GRPC_COMPRESSION_NONE = 0;
 const GRPC_COMPRESSION_GZIP = 2;

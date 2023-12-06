@@ -26,6 +26,12 @@
       "path": "../../../packages/sdk-metrics"
     },
     {
+      "path": "../otlp-exporter-base"
+    },
+    {
+      "path": "../otlp-metrics-exporter-base"
+    },
+    {
       "path": "../otlp-proto-exporter-base"
     },
     {

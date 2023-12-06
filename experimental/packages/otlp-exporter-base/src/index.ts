@@ -33,3 +33,4 @@ export { IOTLPResponseHandler } from './common/response-handler';
 export { RetryingTransport } from './common/retrying-transport';
 export { ISerializer } from './common/serializer';
 export { ITransformer } from './common/transformer';
+export { IConfigurationProvider } from './common/configuration/provider';

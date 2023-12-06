@@ -78,6 +78,8 @@
     "@opentelemetry/core": "1.18.1",
     "@opentelemetry/exporter-metrics-otlp-http": "0.45.1",
     "@opentelemetry/otlp-exporter-base": "0.45.1",
+    "@opentelemetry/otlp-metrics-exporter-base": "0.45.1",
+    "@opentelemetry/otlp-http-exporter-base": "0.45.1",
     "@opentelemetry/otlp-proto-exporter-base": "0.45.1",
     "@opentelemetry/otlp-transformer": "0.45.1",
     "@opentelemetry/resources": "1.18.1",

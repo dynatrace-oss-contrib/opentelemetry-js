@@ -27,6 +27,8 @@
       "experimental/packages/otlp-exporter",
       "experimental/packages/otlp-exporter-base",
       "experimental/packages/otlp-grpc-exporter-base",
+      "experimental/packages/otlp-http-exporter-base",
+      "experimental/packages/otlp-metrics-exporter-base",
       "experimental/packages/otlp-proto-exporter-base",
       "experimental/packages/otlp-transformer",
       "experimental/packages/sdk-logs",
@@ -126,6 +128,12 @@
     },
     {
       "path": "experimental/packages/otlp-grpc-exporter-base"
+    },
+    {
+      "path": "experimental/packages/otlp-http-exporter-base"
+    },
+    {
+      "path": "experimental/packages/otlp-metrics-exporter-base"
     },
     {
       "path": "experimental/packages/otlp-proto-exporter-base"

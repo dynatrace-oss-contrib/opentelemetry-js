@@ -18,7 +18,7 @@ import {
   IExportTraceServiceRequest,
   IExportTraceServiceResponse,
 } from '@opentelemetry/otlp-transformer';
-import { ISerializer } from '../common/serializer';
+import { ISerializer } from '@opentelemetry/otlp-exporter-base';
 
 export type ITraceSerializer = ISerializer<
   IExportTraceServiceRequest,

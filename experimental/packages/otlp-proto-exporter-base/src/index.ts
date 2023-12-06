@@ -37,4 +37,4 @@ export type IExportLogsServiceRequest =
 export type IExportTraceServiceRequest =
   root.opentelemetry.proto.collector.trace.v1.IExportTraceServiceRequest;
 
-export * from './platform';
+export * from './legacy/platform';

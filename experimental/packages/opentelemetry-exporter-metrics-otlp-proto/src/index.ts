@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-// Legacy
-export { OTLPMetricExporter } from './OTLPMetricExporter';
+// Legacy exporter kept for compatibility, scheduled for removal in 2.0
+export { OTLPMetricExporter } from './legacy/OTLPMetricExporter';
 
-export { createOtlpProtoMetricsExporter } from '@opentelemetry/otlp-exporter';
+// New exporter factory function
+export { createOtlpProtoMetricsExporter } from './factory/node-exporter-factory';

@@ -13,12 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import * as root from '../../generated/root';
 import {
   IExportTraceServiceRequest,
   IExportTraceServiceResponse,
 } from '@opentelemetry/otlp-transformer';
 import { ITraceSerializer } from '../trace-serializer';
+import {
+  ExportTraceServiceRequest,
+  ExportTraceServiceResponse,
+  IExportTraceServiceRequest as ProtobufServiceRequest,
+} from '@opentelemetry/otlp-proto-exporter-base';
 
 export function createProtobufTracesSerializer(): ITraceSerializer {
   return {
@@ -30,12 +34,9 @@ export function createProtobufTracesSerializer(): ITraceSerializer {
 function serializeRequest(
   request: IExportTraceServiceRequest
 ): Uint8Array | undefined {
-  const exportRequestType =
-    root.opentelemetry.proto.collector.trace.v1.ExportTraceServiceRequest;
+  const exportRequestType = ExportTraceServiceRequest;
 
-  const message = exportRequestType.create(
-    request as root.opentelemetry.proto.collector.trace.v1.IExportTraceServiceRequest
-  );
+  const message = exportRequestType.create(request as ProtobufServiceRequest);
   if (message) {
     return exportRequestType.encode(message).finish();
   }
@@ -43,8 +44,5 @@ function serializeRequest(
 }
 
 function deserializeResponse(data: Uint8Array): IExportTraceServiceResponse {
-  const exportResponseType =
-    root.opentelemetry.proto.collector.trace.v1.ExportTraceServiceResponse;
-
-  return exportResponseType.decode(data) as IExportTraceServiceResponse;
+  return ExportTraceServiceResponse.decode(data) as IExportTraceServiceResponse;
 }

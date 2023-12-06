@@ -15,11 +15,11 @@
  */
 
 import { ResourceMetrics } from '@opentelemetry/sdk-metrics';
-import { ITransformer } from '../../common/transformer';
 import {
   createExportMetricsServiceRequest,
   IExportMetricsServiceRequest,
 } from '@opentelemetry/otlp-transformer';
+import { ITransformer } from '@opentelemetry/otlp-exporter-base';
 
 export function createJsonMetricsTransformer(): ITransformer<
   ResourceMetrics,

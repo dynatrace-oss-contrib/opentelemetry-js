@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { ITransformer } from '../../common/transformer';
+import { ITransformer } from '@opentelemetry/otlp-exporter-base';
 import {
   createExportLogsServiceRequest,
   IExportLogsServiceRequest,

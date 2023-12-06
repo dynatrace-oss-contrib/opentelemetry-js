@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import * as root from '../../generated/root';
 import {
   IExportTraceServiceRequest,
   IExportTraceServiceResponse,
@@ -30,21 +29,9 @@ export function createProtobufTracesSerializer(): ITraceSerializer {
 function serializeRequest(
   request: IExportTraceServiceRequest
 ): Uint8Array | undefined {
-  const exportRequestType =
-    root.opentelemetry.proto.collector.trace.v1.ExportTraceServiceRequest;
-
-  const message = exportRequestType.create(
-    request as root.opentelemetry.proto.collector.trace.v1.IExportTraceServiceRequest
-  );
-  if (message) {
-    return exportRequestType.encode(message).finish();
-  }
-  return undefined;
+  return new TextEncoder().encode(JSON.stringify(request));
 }
 
 function deserializeResponse(data: Uint8Array): IExportTraceServiceResponse {
-  const exportResponseType =
-    root.opentelemetry.proto.collector.trace.v1.ExportTraceServiceResponse;
-
-  return exportResponseType.decode(data) as IExportTraceServiceResponse;
+  return JSON.parse(data.toString());
 }

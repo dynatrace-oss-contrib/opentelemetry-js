@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-import { ITransformer } from '../../common/transformer';
 import {
   createExportTraceServiceRequest,
   IExportTraceServiceRequest,
 } from '@opentelemetry/otlp-transformer';
 import { ReadableSpan } from '@opentelemetry/sdk-trace-base';
+import { ITransformer } from '@opentelemetry/otlp-exporter-base';
 
 export function createTracesTransformer(): ITransformer<
   ReadableSpan[],

@@ -17,7 +17,7 @@ import {
   IExportMetricsServiceRequest,
   IExportMetricsServiceResponse,
 } from '@opentelemetry/otlp-transformer';
-import { IMetricsSerializer } from '../metrics-serializer';
+import { IMetricsSerializer } from '@opentelemetry/otlp-metrics-exporter-base';
 
 export function createMetricsSerializer(): IMetricsSerializer {
   return {
@@ -29,7 +29,7 @@ export function createMetricsSerializer(): IMetricsSerializer {
 function serializeRequest(
   request: IExportMetricsServiceRequest
 ): Uint8Array | undefined {
-  return Buffer.from(JSON.stringify(request));
+  return new TextEncoder().encode(JSON.stringify(request));
 }
 
 function deserializeResponse(data: Uint8Array): IExportMetricsServiceResponse {

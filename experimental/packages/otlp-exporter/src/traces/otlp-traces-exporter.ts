@@ -15,8 +15,8 @@
  */
 
 import { ExportResult } from '@opentelemetry/core';
-import { IOLTPExportDelegate } from '../common/i-otlp-export-delegate';
 import { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base';
+import { IOLTPExportDelegate } from '@opentelemetry/otlp-exporter-base';
 
 // This is currently a placeholder so that signal-specific functionality can be added here in the future if needed.
 export class OTLPTracesExporter implements SpanExporter {
