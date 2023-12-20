@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-import {VERSION} from '../../version'
+import { VERSION } from '../../version';
 import { OtlpHttpConfiguration } from './configuration';
-import {IConfigurationProvider} from "@opentelemetry/otlp-exporter-base";
+import { IConfigurationProvider } from '@opentelemetry/otlp-exporter-base';
 
 // Specification defines 10 seconds.
 export const DEFAULT_TIMEOUT = 10000;

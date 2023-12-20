@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 import { NodeHttpConfiguration } from './configuration';
-import {IConfigurationProvider} from "@opentelemetry/otlp-exporter-base";
+import { IConfigurationProvider } from '@opentelemetry/otlp-exporter-base';
 
 const DEFAULT_CONFIGURATION: NodeHttpConfiguration = {
   agentOptions: {
