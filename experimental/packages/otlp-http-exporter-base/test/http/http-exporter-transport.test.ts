@@ -19,7 +19,7 @@ import * as sinon from 'sinon';
 import * as http from 'http';
 import { Stream } from 'stream';
 import * as https from 'https';
-import { HttpExporterTransport } from '../../build/esnext/http/node/http-exporter-transport';
+import { HttpExporterTransport } from '../../src/http/node/http-exporter-transport';
 
 class MockedResponse extends Stream {
   constructor(
