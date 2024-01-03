@@ -1,6 +1,6 @@
 {
   "name": "@opentelemetry/otlp-metrics-exporter-base",
-  "version": "0.45.1",
+  "version": "0.46.0",
   "description": "OpenTelemetry OTLP Metrics Exporter base (for internal use only)",
   "main": "build/src/index.js",
   "module": "build/esm/index.js",
@@ -62,9 +62,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@opentelemetry/sdk-metrics": "1.18.1",
-    "@opentelemetry/otlp-transformer": "0.45.1",
-    "@opentelemetry/otlp-exporter-base": "0.45.1"
+    "@opentelemetry/sdk-metrics": "1.19.0",
+    "@opentelemetry/otlp-transformer": "0.46.0",
+    "@opentelemetry/otlp-exporter-base": "0.46.0"
   },
   "devDependencies": {
     "@babel/core": "7.22.20",

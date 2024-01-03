@@ -1,6 +1,6 @@
 {
   "name": "@opentelemetry/otlp-exporter",
-  "version": "0.45.1",
+  "version": "0.46.0",
   "description": "OpenTelemetry OTLP Exporter",
   "main": "build/src/index.js",
   "module": "build/esm/index.js",
@@ -61,14 +61,14 @@
     "access": "public"
   },
   "dependencies": {
-    "@opentelemetry/core": "1.18.1",
-    "@opentelemetry/sdk-metrics": "1.18.1",
-    "@opentelemetry/sdk-trace-base": "1.18.1",
-    "@opentelemetry/sdk-logs": "0.45.1",
-    "@opentelemetry/otlp-transformer": "0.45.1",
-    "@opentelemetry/otlp-proto-exporter-base": "0.45.1",
-    "@opentelemetry/otlp-metrics-exporter-base": "0.45.1",
-    "@opentelemetry/otlp-exporter-base": "0.45.1",
+    "@opentelemetry/core": "1.19.0",
+    "@opentelemetry/sdk-metrics": "1.19.0",
+    "@opentelemetry/sdk-trace-base": "1.19.0",
+    "@opentelemetry/sdk-logs": "0.46.0",
+    "@opentelemetry/otlp-transformer": "0.46.0",
+    "@opentelemetry/otlp-proto-exporter-base": "0.46.0",
+    "@opentelemetry/otlp-metrics-exporter-base": "0.46.0",
+    "@opentelemetry/otlp-exporter-base": "0.46.0",
     "protobufjs": "^7.2.3",
     "@grpc/grpc-js": "^1.9.7"
   },
