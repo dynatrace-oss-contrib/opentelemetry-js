@@ -17,7 +17,7 @@
 // Legacy exports scheduled for removal.
 export * from './legacy';
 
-// Re-implemented shared exporter code
+// Re-implemented shared exporter code, signal- and platform-agnostic
 export {
   IExportPromiseQueue,
   ExportPromiseQueue,

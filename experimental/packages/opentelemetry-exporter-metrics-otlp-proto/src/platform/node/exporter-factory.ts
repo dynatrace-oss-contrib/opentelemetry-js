@@ -31,12 +31,12 @@ import { HttpExporterTransport } from '@opentelemetry/otlp-http-exporter-node-ba
 import { DefaultingNodeHttpConfigurationProvider } from '@opentelemetry/otlp-http-exporter-node-base';
 import { EnvironmentOtlpHttpConfigurationProvider } from '@opentelemetry/otlp-http-exporter-node-base';
 
-import { HTTP_METRICS_DEFAULT_CONFIGURATION } from '../configuration/default-configuration';
-import { OtlpHttpProtoMetricsConfiguration } from '../configuration/otlp-http-proto-metrics-configuration';
-import { createProtobufMetricsSerializer } from '../internal/metrics-serializer';
-import { createProtobufMetricsTransformer } from '../internal/metrics-transformer';
+import { OtlpHttpProtoMetricsConfiguration } from './configuration';
+import { HTTP_METRICS_DEFAULT_CONFIGURATION } from '../../configuration/default-configuration';
+import { createProtobufMetricsSerializer } from '../../internal/metrics-serializer';
+import { createProtobufMetricsTransformer } from '../../internal/metrics-transformer';
 
-export function createOtlpProtoMetricsExporter(
+export function createMetricsExporter(
   options: Partial<OtlpHttpProtoMetricsConfiguration>
 ): PushMetricExporter {
   const httpEnvironmentConfiguration =

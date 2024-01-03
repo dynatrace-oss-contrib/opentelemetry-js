@@ -15,17 +15,16 @@
  */
 
 import * as sinon from 'sinon';
-import { IExportMetricsServiceResponse } from '@opentelemetry/otlp-transformer';
 import * as assert from 'assert';
-import { IExporterTransport } from '../../src/common/exporter-transport';
-import { ISerializer } from '../../src/common/serializer';
-import { IExportPromiseQueue } from '../../src/common/export-promise-queue';
-import { IOTLPResponseHandler } from '../../src/common/response-handler';
-import { ITransformer } from '../../src/common/transformer';
+import { IExporterTransport } from '../../src';
+import { ISerializer } from '../../src';
+import { IExportPromiseQueue } from '../../src';
+import { IOTLPResponseHandler } from '../../src';
+import { ITransformer } from '../../src';
 import { ExportResultCode } from '@opentelemetry/core';
 import { diag } from '@opentelemetry/api';
-import { OTLPExportDelegate } from '../../src/common/otlp-export-delegate';
-import { ExportResponse } from '../../src/common/export-response';
+import { OTLPExportDelegate } from '../../src';
+import { ExportResponse } from '../../src';
 
 interface FakeInternalRepresentation {
   foo: string;
@@ -477,7 +476,7 @@ describe('OTLPExportDelegate', function () {
       });
     });
 
-    it('returns success if partial success is returned', function (done) {
+    it('returns success if response is returned', function (done) {
       // returns full success response (empty body)
       const exportResponse: ExportResponse = {
         data: Buffer.from([]),
@@ -490,17 +489,14 @@ describe('OTLPExportDelegate', function () {
       };
       const mockTransport = <IExporterTransport>transportStubs;
 
-      const response: IExportMetricsServiceResponse = {
-        partialSuccess: {
-          rejectedDataPoints: 10,
-          errorMessage: 'mock error message',
-        },
+      const response: FakeSignalResponse = {
+        baz: 'partial success',
       };
 
       const serializerStubs = {
         // simulate that the serializer returns something to send
         serializeRequest: sinon.stub().returns(Buffer.from([1])),
-        // simulate that it returns a full success (empty response)
+        // simulate that it returns a partial success (response with contents)
         deserializeResponse: sinon.stub().returns(response),
       };
       const mockSerializer = <FakeSerializer>serializerStubs;

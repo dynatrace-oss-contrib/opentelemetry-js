@@ -34,6 +34,9 @@
       "path": "../otlp-http-exporter-base"
     },
     {
+      "path": "../otlp-http-exporter-node-base"
+    },
+    {
       "path": "../otlp-metrics-exporter-base"
     },
     {

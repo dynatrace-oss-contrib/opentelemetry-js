@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-// Legacy exporter kept for compatibility, scheduled for removal in 2.0
-export { OTLPMetricExporter } from './legacy/OTLPMetricExporter';
-
-// New exporter factory function
-export { createMetricsExporter } from './platform';
+export {
+  LegacyConfig,
+  createMetricsExporter,
+  OtlpHttpProtoMetricsConfiguration,
+} from './node/index';

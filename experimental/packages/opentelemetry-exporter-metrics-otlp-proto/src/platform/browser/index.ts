@@ -13,9 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+export { LegacyConfig } from './legacy/configuration';
 
-// Legacy exporter kept for compatibility, scheduled for removal in 2.0
-export { OTLPMetricExporter } from './legacy/OTLPMetricExporter';
-
-// New exporter factory function
-export { createMetricsExporter } from './platform';
+export { OtlpHttpProtoMetricsConfiguration } from './configuration';
+export { createMetricsExporter } from './exporter-factory';

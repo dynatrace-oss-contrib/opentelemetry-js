@@ -14,4 +14,7 @@
  * limitations under the License.
  */
 
-export * from '../../legacy/platform/browser';
+import { OTLPExporterConfigBase } from '@opentelemetry/otlp-exporter-base';
+import { OTLPMetricExporterOptions } from '@opentelemetry/exporter-metrics-otlp-http';
+
+export type LegacyConfig = OTLPExporterConfigBase & OTLPMetricExporterOptions;

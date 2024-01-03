@@ -7,6 +7,12 @@
   "esnext": "build/esnext/index.js",
   "types": "build/src/index.d.ts",
   "repository": "open-telemetry/opentelemetry-js",
+  "browser": {
+    "./src/platform/index.ts": "./src/platform/browser/index.ts",
+    "./build/esm/platform/index.js": "./build/esm/platform/browser/index.js",
+    "./build/esnext/platform/index.js": "./build/esnext/platform/browser/index.js",
+    "./build/src/platform/index.js": "./build/src/platform/browser/index.js"
+  },
   "scripts": {
     "prepublishOnly": "npm run compile",
     "compile": "tsc --build tsconfig.json tsconfig.esm.json tsconfig.esnext.json",
@@ -80,6 +86,7 @@
     "@opentelemetry/otlp-exporter-base": "0.46.0",
     "@opentelemetry/otlp-metrics-exporter-base": "0.46.0",
     "@opentelemetry/otlp-http-exporter-base": "0.46.0",
+    "@opentelemetry/otlp-http-exporter-node-base": "0.46.0",
     "@opentelemetry/otlp-proto-exporter-base": "0.46.0",
     "@opentelemetry/otlp-transformer": "0.46.0",
     "@opentelemetry/resources": "1.19.0",

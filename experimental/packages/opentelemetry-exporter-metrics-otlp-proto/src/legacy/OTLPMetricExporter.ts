@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { OTLPExporterNodeConfigBase } from '@opentelemetry/otlp-exporter-base';
 import {
   PushMetricExporter,
   AggregationTemporality,
@@ -24,14 +23,13 @@ import {
 } from '@opentelemetry/sdk-metrics';
 import {
   AggregationTemporalityPreference,
-  OTLPMetricExporterOptions,
   DeltaTemporalitySelector,
   CumulativeTemporalitySelector,
   LowMemoryTemporalitySelector,
 } from '@opentelemetry/exporter-metrics-otlp-http';
 
 import { ExportResult } from '@opentelemetry/core';
-import { createOtlpProtoMetricsExporter } from '../factory/node-exporter-factory';
+import { LegacyConfig, createMetricsExporter } from '../platform';
 
 /**
  * Legacy OTLPMetricExporter.
@@ -39,12 +37,12 @@ import { createOtlpProtoMetricsExporter } from '../factory/node-exporter-factory
  * package, but no new features will be added.
  *  - This method of constructing the exporter will be dropped with 2.0.
  *
- * Please use {@link createOtlpProtoMetricsExporter} instead.
+ * @deprecated Please use {@link createMetricsExporter} instead.
  */
 export class OTLPMetricExporter implements PushMetricExporter {
   private _exporter: PushMetricExporter;
 
-  constructor(config?: OTLPExporterNodeConfigBase & OTLPMetricExporterOptions) {
+  constructor(config?: LegacyConfig) {
     let selector: AggregationTemporalitySelector | undefined;
     if (
       config?.temporalityPreference ===
@@ -81,7 +79,7 @@ export class OTLPMetricExporter implements PushMetricExporter {
       }
     }
 
-    this._exporter = createOtlpProtoMetricsExporter({
+    this._exporter = createMetricsExporter({
       url: config?.url,
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore headers will be the correct format
