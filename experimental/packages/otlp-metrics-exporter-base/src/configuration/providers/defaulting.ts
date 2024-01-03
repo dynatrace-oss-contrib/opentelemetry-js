@@ -21,7 +21,7 @@ import { IConfigurationProvider } from '@opentelemetry/otlp-exporter-base';
 const DEFAULT_TEMPORALITY_SELECTOR = CumulativeTemporalitySelector;
 
 /**
- * Handles merging user-provided, fallback, and default configurations metrics-specific exporters.
+ * Handles merging user-provided, fallback, and default configurations for metrics-specific exporters.
  *
  * @experimental
  */
