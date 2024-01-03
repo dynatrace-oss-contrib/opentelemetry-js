@@ -15,10 +15,8 @@
  */
 
 import { MetricsConfiguration } from '@opentelemetry/otlp-metrics-exporter-base';
-import {
-  NodeHttpConfiguration,
-  OtlpHttpConfiguration,
-} from '@opentelemetry/otlp-http-exporter-base';
+import { OtlpHttpConfiguration } from '@opentelemetry/otlp-http-exporter-base';
+import { NodeHttpConfiguration } from '@opentelemetry/otlp-http-exporter-node-base';
 
 export interface OtlpHttpProtoMetricsConfiguration
   extends OtlpHttpConfiguration,

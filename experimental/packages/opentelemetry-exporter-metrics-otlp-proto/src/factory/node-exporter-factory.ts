@@ -15,20 +15,23 @@
  */
 
 import { PushMetricExporter } from '@opentelemetry/sdk-metrics';
-import { HttpExporterTransport } from '@opentelemetry/otlp-http-exporter-base';
 import { ExportPromiseQueue } from '@opentelemetry/otlp-exporter-base';
 
 import { RetryingTransport } from '@opentelemetry/otlp-exporter-base';
 import { OTLPExportDelegate } from '@opentelemetry/otlp-exporter-base';
-import { createMetricsPartialSuccessHandler } from '@opentelemetry/otlp-metrics-exporter-base';
 import { createOtlpMetricsExporter } from '@opentelemetry/otlp-metrics-exporter-base';
+
 import { DefaultingOtlpHttpConfigurationProvider } from '@opentelemetry/otlp-http-exporter-base';
+
 import { DefaultingMetricsConfigurationProvider } from '@opentelemetry/otlp-metrics-exporter-base';
-import { HTTP_METRICS_DEFAULT_CONFIGURATION } from '../configuration/default-configuration';
-import { DefaultingNodeHttpConfigurationProvider } from '@opentelemetry/otlp-http-exporter-base';
-import { EnvironmentOtlpHttpConfigurationProvider } from '@opentelemetry/otlp-http-exporter-base';
+import { createMetricsPartialSuccessHandler } from '@opentelemetry/otlp-metrics-exporter-base';
 import { EnvironmentOtlpMetricsConfigurationProvider } from '@opentelemetry/otlp-metrics-exporter-base';
 
+import { HttpExporterTransport } from '@opentelemetry/otlp-http-exporter-node-base';
+import { DefaultingNodeHttpConfigurationProvider } from '@opentelemetry/otlp-http-exporter-node-base';
+import { EnvironmentOtlpHttpConfigurationProvider } from '@opentelemetry/otlp-http-exporter-node-base';
+
+import { HTTP_METRICS_DEFAULT_CONFIGURATION } from '../configuration/default-configuration';
 import { OtlpHttpProtoMetricsConfiguration } from '../configuration/otlp-http-proto-metrics-configuration';
 import { createProtobufMetricsSerializer } from '../internal/metrics-serializer';
 import { createProtobufMetricsTransformer } from '../internal/metrics-transformer';

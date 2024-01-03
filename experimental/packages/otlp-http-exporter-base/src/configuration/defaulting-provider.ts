@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-import { VERSION } from '../../version';
+import { VERSION } from '../version';
 import { OtlpHttpConfiguration } from './configuration';
 import { IConfigurationProvider } from '@opentelemetry/otlp-exporter-base';
 
 // Specification defines 10 seconds.
 export const DEFAULT_TIMEOUT = 10000;
 // Non-specified default limit concurrent exports.
-export const DEFAULT_CONCURRENCY_LIMIT = Infinity;
+export const DEFAULT_CONCURRENCY_LIMIT = 30;
 // Specification defines OTLP/HTTP default URL to be http://localhost:4318
 export const DEFAULT_COMPRESSION = 'none';
 // TODO: require accept, content-type?

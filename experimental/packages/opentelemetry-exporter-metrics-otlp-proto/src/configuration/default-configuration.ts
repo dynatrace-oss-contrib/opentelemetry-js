@@ -33,7 +33,7 @@ export const HTTP_METRICS_DEFAULT_CONFIGURATION: OtlpHttpConfiguration = {
   concurrencyLimit: DEFAULT_CONCURRENCY_LIMIT,
   headers: {
     ...DEFAULT_HEADERS,
-    'Accept': 'application/x-protobuf',
+    Accept: 'application/x-protobuf',
     'Content-Type': 'application/x-protobuf',
   },
   timeoutMillis: DEFAULT_TIMEOUT,

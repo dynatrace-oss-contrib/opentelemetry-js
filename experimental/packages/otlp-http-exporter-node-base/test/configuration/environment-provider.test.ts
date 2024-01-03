@@ -18,7 +18,7 @@ import * as assert from 'assert';
 import * as sinon from 'sinon';
 import { diag } from '@opentelemetry/api';
 import * as process from 'process';
-import { EnvironmentOtlpHttpConfigurationProvider } from '../../../../src';
+import { EnvironmentOtlpHttpConfigurationProvider } from '../../src';
 
 describe('environment configuration provider', function () {
   describe('headers', function () {

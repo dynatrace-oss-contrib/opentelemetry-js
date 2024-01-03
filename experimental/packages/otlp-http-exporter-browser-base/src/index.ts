@@ -14,16 +14,5 @@
  * limitations under the License.
  */
 
-export { OtlpHttpConfiguration } from './configuration/configuration';
-export {
-  DefaultingOtlpHttpConfigurationProvider,
-  DEFAULT_COMPRESSION,
-  DEFAULT_HEADERS,
-  DEFAULT_TIMEOUT,
-  DEFAULT_CONCURRENCY_LIMIT,
-} from './configuration/defaulting-provider';
-
-export {
-  isExportRetryable,
-  parseRetryAfterToMills,
-} from './is-export-retryable';
+export { SendBeaconParams, SendBeaconTransport } from './send-beacon-transport';
+export { XhrRequestParameters, XhrTransport } from './xhr-transport';

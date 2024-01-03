@@ -17,12 +17,12 @@ import * as http from 'http';
 import * as https from 'https';
 import * as zlib from 'zlib';
 import { Readable } from 'stream';
-import { HttpRequestParameters } from '../http-transport-types';
+import { HttpRequestParameters } from './http-transport-types';
+import { ExportResponse } from '@opentelemetry/otlp-exporter-base';
 import {
   isExportRetryable,
   parseRetryAfterToMills,
-} from '../is-export-retryable';
-import { ExportResponse } from "@opentelemetry/otlp-exporter-base";
+} from '@opentelemetry/otlp-http-exporter-base';
 
 export const DEFAULT_EXPORT_INITIAL_BACKOFF = 1000;
 export const DEFAULT_EXPORT_MAX_BACKOFF = 5000;

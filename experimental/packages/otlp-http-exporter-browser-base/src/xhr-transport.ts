@@ -15,10 +15,13 @@
  */
 
 import {
+  ExportResponse,
+  IExporterTransport,
+} from '@opentelemetry/otlp-exporter-base';
+import {
   isExportRetryable,
   parseRetryAfterToMills,
-} from '../is-export-retryable';
-import {ExportResponse, IExporterTransport} from "@opentelemetry/otlp-exporter-base";
+} from '@opentelemetry/otlp-http-exporter-base';
 
 export interface XhrRequestParameters {
   timeoutMillis: number;

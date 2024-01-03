@@ -16,7 +16,7 @@
 import type {
   HttpRequestParameters,
   sendWithHttp,
-} from '../http-transport-types';
+} from './http-transport-types';
 
 // NOTE: do not change these type imports to actual imports. Doing so WILL break `@opentelemetry/instrumentation-http`,
 // as they'd be imported before the http/https modules can be wrapped.

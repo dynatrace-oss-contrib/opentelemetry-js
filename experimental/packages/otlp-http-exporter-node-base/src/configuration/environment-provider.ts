@@ -16,8 +16,8 @@
 import { diag } from '@opentelemetry/api';
 
 import { baggageUtils } from '@opentelemetry/core';
-import { OtlpHttpConfiguration } from '../../configuration/configuration';
 import { IConfigurationProvider } from '@opentelemetry/otlp-exporter-base';
+import { OtlpHttpConfiguration } from '@opentelemetry/otlp-http-exporter-base';
 
 /**
  * Reads and provides configuration from the environment

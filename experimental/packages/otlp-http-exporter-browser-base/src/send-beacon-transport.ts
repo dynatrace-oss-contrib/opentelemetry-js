@@ -18,7 +18,7 @@ import {
   ExportResponse,
 } from '@opentelemetry/otlp-exporter-base';
 
-interface SendBeaconParams {
+export interface SendBeaconParams {
   url: string;
   /**
    * for instance 'application/x-protobuf'

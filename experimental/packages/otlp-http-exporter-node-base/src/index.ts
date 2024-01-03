@@ -14,16 +14,7 @@
  * limitations under the License.
  */
 
-export { OtlpHttpConfiguration } from './configuration/configuration';
-export {
-  DefaultingOtlpHttpConfigurationProvider,
-  DEFAULT_COMPRESSION,
-  DEFAULT_HEADERS,
-  DEFAULT_TIMEOUT,
-  DEFAULT_CONCURRENCY_LIMIT,
-} from './configuration/defaulting-provider';
-
-export {
-  isExportRetryable,
-  parseRetryAfterToMills,
-} from './is-export-retryable';
+export { NodeHttpConfiguration } from './configuration/configuration';
+export { DefaultingNodeHttpConfigurationProvider } from './configuration/defaulting-provider';
+export { EnvironmentOtlpHttpConfigurationProvider } from './configuration/environment-provider';
+export { HttpExporterTransport } from './http-exporter-transport';
