@@ -9,7 +9,7 @@ let interval;
 let meter;
 
 function stopMetrics() {
-  console.log('STOPPING METRICS');
+  console.log('STOPPING METRICS proto');
   clearInterval(interval);
   metrics.getMeterProvider().shutdown()
     .then(() => metrics.disable());
@@ -21,7 +21,9 @@ function startMetrics() {
   const meterProvider = new MeterProvider();
 
   meterProvider.addMetricReader(new PeriodicExportingMetricReader({
-    exporter: createMetricsExporter({}),
+    exporter: createMetricsExporter({
+      headers: {'x-my-test': 'header'},
+    }),
     exportIntervalMillis: 1000
   }));
 

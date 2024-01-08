@@ -25,7 +25,6 @@ import {
 import { DefaultingOtlpHttpConfigurationProvider } from '@opentelemetry/otlp-http-exporter-base';
 import {
   ExportPromiseQueue,
-  IExporterTransport,
   OTLPExportDelegate,
   RetryingTransport,
 } from '@opentelemetry/otlp-exporter-base';
@@ -53,23 +52,19 @@ export function createMetricsExporter(
   const useXHR =
     !!options.headers || typeof navigator.sendBeacon !== 'function';
 
-  let transport: IExporterTransport | undefined;
-  if (useXHR) {
-    // only XHR needs to retry, sendBeacon does not get responses -> retry is just dead code there
-    transport = new RetryingTransport(
-      new XhrTransport({
+  const transport = useXHR
+    ? new RetryingTransport(
+        new XhrTransport({
+          url: httpConfiguration.url,
+          headers: httpConfiguration.headers,
+          timeoutMillis: httpConfiguration.timeoutMillis,
+          blobType: 'application/x-protobuf',
+        })
+      )
+    : new SendBeaconTransport({
         url: httpConfiguration.url,
-        headers: httpConfiguration.headers,
-        timeoutMillis: httpConfiguration.timeoutMillis,
         blobType: 'application/x-protobuf',
-      })
-    );
-  } else {
-    transport = new SendBeaconTransport({
-      url: httpConfiguration.url,
-      blobType: 'application/x-protobuf',
-    });
-  }
+      });
 
   const promiseQueue = new ExportPromiseQueue(
     httpConfiguration.concurrencyLimit

@@ -87,6 +87,7 @@
     "@opentelemetry/otlp-metrics-exporter-base": "0.46.0",
     "@opentelemetry/otlp-http-exporter-base": "0.46.0",
     "@opentelemetry/otlp-http-exporter-node-base": "0.46.0",
+    "@opentelemetry/otlp-http-exporter-browser-base": "0.46.0",
     "@opentelemetry/otlp-proto-exporter-base": "0.46.0",
     "@opentelemetry/otlp-transformer": "0.46.0",
     "@opentelemetry/resources": "1.19.0",
