@@ -37,7 +37,7 @@ import { LegacyConfig, createMetricsExporter } from '../platform';
  * package, but no new features will be added.
  *  - This method of constructing the exporter will be dropped with 2.0.
  *
- * @deprecated Please use {@link createMetricsExporter} instead.
+ * Please use {@link createMetricsExporter} instead.
  */
 export class OTLPMetricExporter implements PushMetricExporter {
   private _exporter: PushMetricExporter;
@@ -63,7 +63,7 @@ export class OTLPMetricExporter implements PushMetricExporter {
       selector = LowMemoryTemporalitySelector;
     }
 
-    // popluate keepAlive for use with new settings
+    // populate keepAlive for use with new settings
     if (config?.keepAlive != null) {
       if (config.httpAgentOptions != null) {
         if (config.httpAgentOptions.keepAlive == null) {

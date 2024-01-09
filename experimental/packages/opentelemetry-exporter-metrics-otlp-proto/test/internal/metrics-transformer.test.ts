@@ -36,7 +36,7 @@ describe('protobuf metrics-transformer', function () {
     createServiceRequestSpy.calledOnceWithExactly([resourceMetrics]);
   });
 
-  it('result equals the transformer package exactly', () => {
+  it('result equals the transformer package output exactly', () => {
     const transformer = createProtobufMetricsTransformer();
     assert.deepStrictEqual(
       transformer.transform(resourceMetrics),

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-export { NodeHttpConfiguration } from './configuration/configuration';
-export { DefaultingNodeHttpConfigurationProvider } from './configuration/defaulting-provider';
-export { EnvironmentOtlpHttpConfigurationProvider } from './configuration/environment-provider';
-export { createHttpExporterTransport } from './http-exporter-transport';
-export { REQUIRED_HEADERS } from './required-headers';
+import { VERSION } from './version';
+
+export const REQUIRED_HEADERS = {
+  'User-Agent': `OTel-OTLP-Exporter-JavaScript/${VERSION}`,
+};

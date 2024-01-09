@@ -26,7 +26,7 @@ export interface IExportPromiseQueue {
  *
  * TODO: this still has some confusing behavior on enqueue.
  */
-export class ExportPromiseQueue implements IExportPromiseQueue {
+class ExportPromiseQueue implements IExportPromiseQueue {
   private readonly _concurrencyLimit: number;
   private _sendingPromises: Promise<unknown>[] = [];
 
@@ -55,4 +55,10 @@ export class ExportPromiseQueue implements IExportPromiseQueue {
       /** ignore resolved values */
     });
   }
+}
+
+export function createExportPromiseQueue(options: {
+  concurrencyLimit: number;
+}): IExportPromiseQueue {
+  return new ExportPromiseQueue(options.concurrencyLimit);
 }

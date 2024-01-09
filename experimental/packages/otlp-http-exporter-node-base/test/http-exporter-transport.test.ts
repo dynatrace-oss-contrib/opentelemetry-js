@@ -19,7 +19,7 @@ import * as sinon from 'sinon';
 import * as http from 'http';
 import { Stream } from 'stream';
 import * as https from 'https';
-import { HttpExporterTransport } from '../src';
+import { createHttpExporterTransport } from '../src';
 
 class MockedResponse extends Stream {
   constructor(
@@ -78,7 +78,7 @@ describe('HttpExporterTransport', function () {
         return fakeRequest as any;
       });
 
-      const exporterTransport = new HttpExporterTransport({
+      const exporterTransport = createHttpExporterTransport({
         url: 'http://foo.bar.com/',
         timeoutMillis: 2000,
         headers: { foo: 'bar' },
@@ -132,7 +132,7 @@ describe('HttpExporterTransport', function () {
         return fakeRequest as any;
       });
 
-      const exporterTransport = new HttpExporterTransport({
+      const exporterTransport = createHttpExporterTransport({
         url: 'https://foo.bar.com/',
         timeoutMillis: 2000,
         headers: { foo: 'bar' },

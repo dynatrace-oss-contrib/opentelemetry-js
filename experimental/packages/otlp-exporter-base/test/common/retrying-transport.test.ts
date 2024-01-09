@@ -17,7 +17,7 @@
 import * as sinon from 'sinon';
 import * as assert from 'assert';
 import { IExporterTransport } from '../../src/common/exporter-transport';
-import { RetryingTransport } from '../../src/common/retrying-transport';
+import { createRetryingTransport } from '../../src/common/retrying-transport';
 import { ExportResponse } from '../../src/common/export-response';
 
 describe('RetryingTransport', function () {
@@ -34,7 +34,7 @@ describe('RetryingTransport', function () {
         send: sinon.stub().returns(Promise.resolve(expectedResponse)),
       };
       const mockTransport = <IExporterTransport>transportStubs;
-      const transport = new RetryingTransport(mockTransport);
+      const transport = createRetryingTransport({ transport: mockTransport });
 
       // act
       const actualResponse = await transport.send(mockData);
@@ -56,7 +56,7 @@ describe('RetryingTransport', function () {
         send: sinon.stub().returns(Promise.resolve(expectedResponse)),
       };
       const mockTransport = <IExporterTransport>transportStubs;
-      const transport = new RetryingTransport(mockTransport);
+      const transport = createRetryingTransport({ transport: mockTransport });
 
       // act
       const actualResponse = await transport.send(mockData);
@@ -76,7 +76,7 @@ describe('RetryingTransport', function () {
         send: sinon.stub().rejects(expectedError),
       };
       const mockTransport = <IExporterTransport>transportStubs;
-      const transport = new RetryingTransport(mockTransport);
+      const transport = createRetryingTransport({ transport: mockTransport });
 
       // act
       await assert.rejects(() => transport.send(mockData));
@@ -104,7 +104,7 @@ describe('RetryingTransport', function () {
           .returns(Promise.resolve(successResponse)),
       };
       const mockTransport = <IExporterTransport>transportStubs;
-      const transport = new RetryingTransport(mockTransport);
+      const transport = createRetryingTransport({ transport: mockTransport });
 
       // act
       const actualResponse = await transport.send(mockData);
@@ -133,7 +133,7 @@ describe('RetryingTransport', function () {
           .rejects(expectedError),
       };
       const mockTransport = <IExporterTransport>transportStubs;
-      const transport = new RetryingTransport(mockTransport);
+      const transport = createRetryingTransport({ transport: mockTransport });
 
       // act
       await assert.rejects(() => transport.send(mockData));
@@ -158,7 +158,7 @@ describe('RetryingTransport', function () {
         send: sinon.stub().resolves(retryResponse),
       };
       const mockTransport = <IExporterTransport>transportStubs;
-      const transport = new RetryingTransport(mockTransport);
+      const transport = createRetryingTransport({ transport: mockTransport });
 
       // act
       const result = await transport.send(mockData);

@@ -27,7 +27,7 @@ import {
   IExporterTransport,
 } from '@opentelemetry/otlp-exporter-base';
 
-export class HttpExporterTransport implements IExporterTransport {
+class HttpExporterTransport implements IExporterTransport {
   private _send: sendWithHttp | null = null;
   private _agent: http.Agent | https.Agent | null = null;
 
@@ -56,4 +56,10 @@ export class HttpExporterTransport implements IExporterTransport {
       });
     });
   }
+}
+
+export function createHttpExporterTransport(
+  parameters: HttpRequestParameters
+): IExporterTransport {
+  return new HttpExporterTransport(parameters);
 }

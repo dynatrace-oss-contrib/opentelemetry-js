@@ -14,9 +14,13 @@
  * limitations under the License.
  */
 
-import { VERSION } from '../version';
 import { OtlpHttpConfiguration } from './configuration';
 import { IConfigurationProvider } from '@opentelemetry/otlp-exporter-base';
+
+// Defaults:
+// Note: Omitting default (required) headers as they'll differ for Node.js and Browser. For header defaults, please use
+//  - @opentelemetry/otlp-http-exporter-node-base
+//  - @opentelemetry/otlp-http-exporter-browser-base
 
 // Specification defines 10 seconds.
 export const DEFAULT_TIMEOUT = 10000;
@@ -24,10 +28,6 @@ export const DEFAULT_TIMEOUT = 10000;
 export const DEFAULT_CONCURRENCY_LIMIT = 30;
 // Specification defines OTLP/HTTP default URL to be http://localhost:4318
 export const DEFAULT_COMPRESSION = 'none';
-// TODO: require accept, content-type?
-export const DEFAULT_HEADERS = {
-  'User-Agent': `OTel-OTLP-Exporter-JavaScript/${VERSION}`,
-};
 
 export class DefaultingOtlpHttpConfigurationProvider
   implements IConfigurationProvider<OtlpHttpConfiguration>

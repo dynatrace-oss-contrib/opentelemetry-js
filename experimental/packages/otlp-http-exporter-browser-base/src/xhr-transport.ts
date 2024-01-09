@@ -33,7 +33,7 @@ export interface XhrRequestParameters {
   blobType: string;
 }
 
-export class XhrTransport implements IExporterTransport {
+class XhrTransport implements IExporterTransport {
   constructor(private _parameters: XhrRequestParameters) {}
 
   send(data: Uint8Array): Promise<ExportResponse> {
@@ -88,4 +88,14 @@ export class XhrTransport implements IExporterTransport {
       xhr.send(new Blob([data], { type: this._parameters.blobType }));
     });
   }
+}
+
+/**
+ * Creates an exporter transport that uses XHR to send the data
+ * @param parameters applied to each request made by transport
+ */
+export function createXhrTransport(
+  parameters: XhrRequestParameters
+): IExporterTransport {
+  return new XhrTransport(parameters);
 }

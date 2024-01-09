@@ -51,7 +51,7 @@ export function createBrowserMetricsExporter(
   let transport: IExporterTransport | undefined;
   if (useXHR) {
     // only XHR needs to retry, sendBeacon does not get responses -> retry is just dead code there
-    transport = new RetryingTransport(
+    transport = createRetryingTransport(
       new XhrTransport({
         url: httpConfiguration.url,
         headers: httpConfiguration.headers,

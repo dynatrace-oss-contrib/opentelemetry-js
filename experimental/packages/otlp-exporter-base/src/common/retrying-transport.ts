@@ -23,10 +23,7 @@ const INITIAL_BACKOFF = 1000;
 const MAX_BACKOFF = 5000;
 const BACKOFF_MULTIPLIER = 1.5;
 
-/**
- * Exporter Transport that retries on 'retryable' response.
- */
-export class RetryingTransport implements IExporterTransport {
+class RetryingTransport implements IExporterTransport {
   constructor(private _transport: IExporterTransport) {}
 
   private retry(data: Uint8Array, inMillis: number): Promise<ExportResponse> {
@@ -53,4 +50,14 @@ export class RetryingTransport implements IExporterTransport {
 
     return result;
   }
+}
+
+/**
+ * Creates an Exporter Transport that retries on 'retryable' response.
+ */
+export function createRetryingTransport(options: {
+  // Underlying transport to wrap.
+  transport: IExporterTransport;
+}): IExporterTransport {
+  return new RetryingTransport(options.transport);
 }

@@ -14,27 +14,6 @@
  * limitations under the License.
  */
 
-import {
-  OtlpHttpConfiguration,
-  DEFAULT_COMPRESSION,
-  DEFAULT_CONCURRENCY_LIMIT,
-  DEFAULT_HEADERS,
-  DEFAULT_TIMEOUT,
-} from '@opentelemetry/otlp-http-exporter-base';
-
-/**
- * Default configuration for HTTP Metrics
- *
- * @experimental
- */
-export const HTTP_METRICS_DEFAULT_CONFIGURATION: OtlpHttpConfiguration = {
-  url: 'http://localhost:4318/v1/metrics',
-  compression: DEFAULT_COMPRESSION,
-  concurrencyLimit: DEFAULT_CONCURRENCY_LIMIT,
-  headers: {
-    ...DEFAULT_HEADERS,
-    Accept: 'application/x-protobuf',
-    'Content-Type': 'application/x-protobuf',
-  },
-  timeoutMillis: DEFAULT_TIMEOUT,
+export const REQUIRED_HEADERS = {
+  // Omitting User-Agent as the browser's User-Agent is used.
 };

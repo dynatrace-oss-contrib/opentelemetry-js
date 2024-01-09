@@ -26,7 +26,7 @@ export interface SendBeaconParams {
   blobType: string;
 }
 
-export class SendBeaconTransport implements IExporterTransport {
+class SendBeaconTransport implements IExporterTransport {
   constructor(private _params: SendBeaconParams) {}
   send(data: Uint8Array): Promise<ExportResponse> {
     return new Promise<ExportResponse>(resolve => {
@@ -48,4 +48,10 @@ export class SendBeaconTransport implements IExporterTransport {
       }
     });
   }
+}
+
+export function createSendBeaconTransport(
+  parameters: SendBeaconParams
+): IExporterTransport {
+  return new SendBeaconTransport(parameters);
 }

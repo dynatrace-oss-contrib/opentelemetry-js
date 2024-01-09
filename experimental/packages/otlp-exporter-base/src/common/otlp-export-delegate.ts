@@ -35,10 +35,30 @@ export interface IOLTPExportDelegate<Internal> {
 }
 
 /**
- * Generic implementation for OTLP exports, this only contains parts of the OTLP export that are shared across all
+ * Creates a generic implementation for OTLP exports, this only contains parts of the OTLP export that are shared across all
  * signals.
  */
-export class OTLPExportDelegate<Internal, Request, Response>
+export function createOtlpExportDelegate<
+  Internal,
+  Request,
+  Response,
+>(components: {
+  transport: IExporterTransport;
+  transformer: ITransformer<Internal, Request>;
+  serializer: ISerializer<Request, Response>;
+  promiseQueue: IExportPromiseQueue;
+  responseHandler: IOTLPResponseHandler<Response>;
+}): IOLTPExportDelegate<Internal> {
+  return new OTLPExportDelegate(
+    components.transport,
+    components.transformer,
+    components.serializer,
+    components.promiseQueue,
+    components.responseHandler
+  );
+}
+
+class OTLPExportDelegate<Internal, Request, Response>
   implements IOLTPExportDelegate<Internal>
 {
   constructor(

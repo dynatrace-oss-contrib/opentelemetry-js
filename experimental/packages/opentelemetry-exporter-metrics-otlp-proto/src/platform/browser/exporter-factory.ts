@@ -15,25 +15,43 @@
  */
 
 import { PushMetricExporter } from '@opentelemetry/sdk-metrics';
-import { HTTP_METRICS_DEFAULT_CONFIGURATION } from '../../configuration/default-configuration';
 import { OtlpHttpProtoMetricsConfiguration } from './configuration';
 import {
   createMetricsPartialSuccessHandler,
   createOtlpMetricsExporter,
   DefaultingMetricsConfigurationProvider,
 } from '@opentelemetry/otlp-metrics-exporter-base';
-import { DefaultingOtlpHttpConfigurationProvider } from '@opentelemetry/otlp-http-exporter-base';
 import {
-  ExportPromiseQueue,
-  OTLPExportDelegate,
-  RetryingTransport,
+  DEFAULT_COMPRESSION,
+  DEFAULT_CONCURRENCY_LIMIT,
+  DEFAULT_TIMEOUT,
+  DefaultingOtlpHttpConfigurationProvider,
+  OtlpHttpConfiguration,
+} from '@opentelemetry/otlp-http-exporter-base';
+import {
+  createRetryingTransport,
+  createOtlpExportDelegate,
+  createExportPromiseQueue,
 } from '@opentelemetry/otlp-exporter-base';
 import {
-  SendBeaconTransport,
-  XhrTransport,
+  REQUIRED_HEADERS,
+  createSendBeaconTransport,
+  createXhrTransport,
 } from '@opentelemetry/otlp-http-exporter-browser-base';
 import { createProtobufMetricsSerializer } from '../../internal/metrics-serializer';
 import { createProtobufMetricsTransformer } from '../../internal/metrics-transformer';
+
+const DEFAULTS: OtlpHttpConfiguration = {
+  url: 'http://localhost:4318/v1/metrics',
+  compression: DEFAULT_COMPRESSION,
+  concurrencyLimit: DEFAULT_CONCURRENCY_LIMIT,
+  headers: {
+    ...REQUIRED_HEADERS,
+    Accept: 'application/x-protobuf',
+    'Content-Type': 'application/x-protobuf',
+  },
+  timeoutMillis: DEFAULT_TIMEOUT,
+};
 
 export function createMetricsExporter(
   options: Partial<OtlpHttpProtoMetricsConfiguration>
@@ -46,37 +64,37 @@ export function createMetricsExporter(
   const httpConfiguration = new DefaultingOtlpHttpConfigurationProvider(
     options,
     {},
-    HTTP_METRICS_DEFAULT_CONFIGURATION
+    DEFAULTS
   ).provide();
 
   const useXHR =
     !!options.headers || typeof navigator.sendBeacon !== 'function';
 
   const transport = useXHR
-    ? new RetryingTransport(
-        new XhrTransport({
+    ? createRetryingTransport({
+        transport: createXhrTransport({
           url: httpConfiguration.url,
           headers: httpConfiguration.headers,
           timeoutMillis: httpConfiguration.timeoutMillis,
           blobType: 'application/x-protobuf',
-        })
-      )
-    : new SendBeaconTransport({
+        }),
+      })
+    : createSendBeaconTransport({
         url: httpConfiguration.url,
         blobType: 'application/x-protobuf',
       });
 
-  const promiseQueue = new ExportPromiseQueue(
-    httpConfiguration.concurrencyLimit
-  );
+  const promiseQueue = createExportPromiseQueue({
+    concurrencyLimit: httpConfiguration.concurrencyLimit,
+  });
 
-  const exporterDelegate = new OTLPExportDelegate(
+  const exporterDelegate = createOtlpExportDelegate({
     transport,
-    createProtobufMetricsTransformer(),
-    createProtobufMetricsSerializer(),
+    responseHandler: createMetricsPartialSuccessHandler(),
+    serializer: createProtobufMetricsSerializer(),
+    transformer: createProtobufMetricsTransformer(),
     promiseQueue,
-    createMetricsPartialSuccessHandler()
-  );
+  });
 
   return createOtlpMetricsExporter(
     exporterDelegate,

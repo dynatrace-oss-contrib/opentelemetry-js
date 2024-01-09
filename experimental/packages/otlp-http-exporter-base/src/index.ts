@@ -18,7 +18,6 @@ export { OtlpHttpConfiguration } from './configuration/configuration';
 export {
   DefaultingOtlpHttpConfigurationProvider,
   DEFAULT_COMPRESSION,
-  DEFAULT_HEADERS,
   DEFAULT_TIMEOUT,
   DEFAULT_CONCURRENCY_LIMIT,
 } from './configuration/defaulting-provider';

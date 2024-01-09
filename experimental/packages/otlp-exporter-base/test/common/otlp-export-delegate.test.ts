@@ -23,7 +23,7 @@ import { IOTLPResponseHandler } from '../../src';
 import { ITransformer } from '../../src';
 import { ExportResultCode } from '@opentelemetry/core';
 import { diag } from '@opentelemetry/api';
-import { OTLPExportDelegate } from '../../src';
+import { createOtlpExportDelegate } from '../../src';
 import { ExportResponse } from '../../src';
 
 interface FakeInternalRepresentation {
@@ -90,13 +90,13 @@ describe('OTLPExportDelegate', function () {
       };
       const transformer = <FakeTransformer>transformerStubs;
 
-      const exporter = new OTLPExportDelegate(
-        mockTransport,
-        transformer,
-        mockSerializer,
+      const exporter = createOtlpExportDelegate({
         promiseQueue,
-        responseHandler
-      );
+        transformer,
+        serializer: mockSerializer,
+        responseHandler,
+        transport: mockTransport,
+      });
 
       await exporter.forceFlush();
       sinon.assert.calledOnce(promiseQueueStubs.awaitAll);
@@ -139,13 +139,13 @@ describe('OTLPExportDelegate', function () {
       };
       const transformer = <FakeTransformer>transformerStubs;
 
-      const exporter = new OTLPExportDelegate(
-        mockTransport,
-        transformer,
-        mockSerializer,
+      const exporter = createOtlpExportDelegate({
         promiseQueue,
-        responseHandler
-      );
+        transformer,
+        serializer: mockSerializer,
+        responseHandler,
+        transport: mockTransport,
+      });
 
       await exporter.shutdown();
       sinon.assert.calledOnce(promiseQueueStubs.awaitAll);
@@ -189,13 +189,13 @@ describe('OTLPExportDelegate', function () {
       };
       const transformer = <FakeTransformer>transformerStubs;
 
-      const exporter = new OTLPExportDelegate(
-        mockTransport,
-        transformer,
-        mockSerializer,
+      const exporter = createOtlpExportDelegate({
         promiseQueue,
-        responseHandler
-      );
+        transformer,
+        serializer: mockSerializer,
+        responseHandler,
+        transport: mockTransport,
+      });
 
       exporter.export(internalRepresentation, result => {
         try {
@@ -251,13 +251,13 @@ describe('OTLPExportDelegate', function () {
       };
       const transformer = <FakeTransformer>transformerStubs;
 
-      const exporter = new OTLPExportDelegate(
-        mockTransport,
-        transformer,
-        mockSerializer,
+      const exporter = createOtlpExportDelegate({
         promiseQueue,
-        responseHandler
-      );
+        transformer,
+        serializer: mockSerializer,
+        responseHandler,
+        transport: mockTransport,
+      });
 
       exporter.export(internalRepresentation, result => {
         try {
@@ -315,13 +315,13 @@ describe('OTLPExportDelegate', function () {
       };
       const transformer = <FakeTransformer>transformerStubs;
 
-      const exporter = new OTLPExportDelegate(
-        mockTransport,
-        transformer,
-        mockSerializer,
+      const exporter = createOtlpExportDelegate({
         promiseQueue,
-        responseHandler
-      );
+        transformer,
+        serializer: mockSerializer,
+        responseHandler,
+        transport: mockTransport,
+      });
 
       exporter.export(internalRepresentation, result => {
         try {
@@ -381,13 +381,13 @@ describe('OTLPExportDelegate', function () {
       };
       const transformer = <FakeTransformer>transformerStubs;
 
-      const exporter = new OTLPExportDelegate(
-        mockTransport,
-        transformer,
-        mockSerializer,
+      const exporter = createOtlpExportDelegate({
         promiseQueue,
-        responseHandler
-      );
+        transformer,
+        serializer: mockSerializer,
+        responseHandler,
+        transport: mockTransport,
+      });
 
       exporter.export(internalRepresentation, result => {
         try {
@@ -447,13 +447,13 @@ describe('OTLPExportDelegate', function () {
       };
       const transformer = <FakeTransformer>transformerStubs;
 
-      const exporter = new OTLPExportDelegate(
-        mockTransport,
-        transformer,
-        mockSerializer,
+      const exporter = createOtlpExportDelegate({
         promiseQueue,
-        responseHandler
-      );
+        transformer,
+        serializer: mockSerializer,
+        responseHandler,
+        transport: mockTransport,
+      });
 
       exporter.export(internalRepresentation, result => {
         try {
@@ -519,13 +519,13 @@ describe('OTLPExportDelegate', function () {
       };
       const transformer = <FakeTransformer>transformerStubs;
 
-      const exporter = new OTLPExportDelegate(
-        mockTransport,
-        transformer,
-        mockSerializer,
+      const exporter = createOtlpExportDelegate({
         promiseQueue,
-        responseHandler
-      );
+        transformer,
+        serializer: mockSerializer,
+        responseHandler,
+        transport: mockTransport,
+      });
 
       exporter.export(internalRepresentation, result => {
         try {
@@ -588,13 +588,13 @@ describe('OTLPExportDelegate', function () {
       };
       const transformer = <FakeTransformer>transformerStubs;
 
-      const exporter = new OTLPExportDelegate(
-        mockTransport,
-        transformer,
-        mockSerializer,
+      const exporter = createOtlpExportDelegate({
         promiseQueue,
-        responseHandler
-      );
+        transformer,
+        serializer: mockSerializer,
+        responseHandler,
+        transport: mockTransport,
+      });
 
       exporter.export(internalRepresentation, result => {
         try {
@@ -654,13 +654,13 @@ describe('OTLPExportDelegate', function () {
       };
       const transformer = <FakeTransformer>transformerStubs;
 
-      const exporter = new OTLPExportDelegate(
-        mockTransport,
-        transformer,
-        mockSerializer,
+      const exporter = createOtlpExportDelegate({
         promiseQueue,
-        responseHandler
-      );
+        transformer,
+        serializer: mockSerializer,
+        responseHandler,
+        transport: mockTransport,
+      });
 
       exporter.export(internalRepresentation, result => {
         try {

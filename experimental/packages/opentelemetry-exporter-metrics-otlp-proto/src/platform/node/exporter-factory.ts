@@ -15,26 +15,43 @@
  */
 
 import { PushMetricExporter } from '@opentelemetry/sdk-metrics';
-import { ExportPromiseQueue } from '@opentelemetry/otlp-exporter-base';
-
-import { RetryingTransport } from '@opentelemetry/otlp-exporter-base';
-import { OTLPExportDelegate } from '@opentelemetry/otlp-exporter-base';
+import { createExportPromiseQueue } from '@opentelemetry/otlp-exporter-base';
+import { createRetryingTransport } from '@opentelemetry/otlp-exporter-base';
+import { createOtlpExportDelegate } from '@opentelemetry/otlp-exporter-base';
 import { createOtlpMetricsExporter } from '@opentelemetry/otlp-metrics-exporter-base';
 
-import { DefaultingOtlpHttpConfigurationProvider } from '@opentelemetry/otlp-http-exporter-base';
+import {
+  DEFAULT_COMPRESSION,
+  DEFAULT_CONCURRENCY_LIMIT,
+  DEFAULT_TIMEOUT,
+  DefaultingOtlpHttpConfigurationProvider,
+  OtlpHttpConfiguration,
+} from '@opentelemetry/otlp-http-exporter-base';
 
 import { DefaultingMetricsConfigurationProvider } from '@opentelemetry/otlp-metrics-exporter-base';
 import { createMetricsPartialSuccessHandler } from '@opentelemetry/otlp-metrics-exporter-base';
 import { EnvironmentOtlpMetricsConfigurationProvider } from '@opentelemetry/otlp-metrics-exporter-base';
 
-import { HttpExporterTransport } from '@opentelemetry/otlp-http-exporter-node-base';
+import { createHttpExporterTransport } from '@opentelemetry/otlp-http-exporter-node-base';
 import { DefaultingNodeHttpConfigurationProvider } from '@opentelemetry/otlp-http-exporter-node-base';
 import { EnvironmentOtlpHttpConfigurationProvider } from '@opentelemetry/otlp-http-exporter-node-base';
 
 import { OtlpHttpProtoMetricsConfiguration } from './configuration';
-import { HTTP_METRICS_DEFAULT_CONFIGURATION } from '../../configuration/default-configuration';
 import { createProtobufMetricsSerializer } from '../../internal/metrics-serializer';
 import { createProtobufMetricsTransformer } from '../../internal/metrics-transformer';
+import { REQUIRED_HEADERS } from '@opentelemetry/otlp-http-exporter-node-base';
+
+const DEFAULTS: OtlpHttpConfiguration = {
+  url: 'http://localhost:4318/v1/metrics',
+  compression: DEFAULT_COMPRESSION,
+  concurrencyLimit: DEFAULT_CONCURRENCY_LIMIT,
+  headers: {
+    ...REQUIRED_HEADERS,
+    Accept: 'application/x-protobuf',
+    'Content-Type': 'application/x-protobuf',
+  },
+  timeoutMillis: DEFAULT_TIMEOUT,
+};
 
 export function createMetricsExporter(
   options: Partial<OtlpHttpProtoMetricsConfiguration>
@@ -56,14 +73,14 @@ export function createMetricsExporter(
   const httpConfiguration = new DefaultingOtlpHttpConfigurationProvider(
     options,
     httpEnvironmentConfiguration,
-    HTTP_METRICS_DEFAULT_CONFIGURATION
+    DEFAULTS
   ).provide();
 
   const nodeHttpConfiguration = new DefaultingNodeHttpConfigurationProvider(
     options
   ).provide();
 
-  const transport = new HttpExporterTransport({
+  const transport = createHttpExporterTransport({
     url: httpConfiguration.url,
     headers: httpConfiguration.headers,
     compression: httpConfiguration.compression,
@@ -71,19 +88,21 @@ export function createMetricsExporter(
     agentOptions: nodeHttpConfiguration.agentOptions,
   });
 
-  const retryingTransport = new RetryingTransport(transport);
+  const retryingTransport = createRetryingTransport({
+    transport,
+  });
 
-  const promiseQueue = new ExportPromiseQueue(
-    httpConfiguration.concurrencyLimit
-  );
+  const promiseQueue = createExportPromiseQueue({
+    concurrencyLimit: httpConfiguration.concurrencyLimit,
+  });
 
-  const exportDelegate = new OTLPExportDelegate(
-    retryingTransport,
-    createProtobufMetricsTransformer(),
-    createProtobufMetricsSerializer(),
+  const exportDelegate = createOtlpExportDelegate({
+    transport: retryingTransport,
+    transformer: createProtobufMetricsTransformer(),
+    serializer: createProtobufMetricsSerializer(),
     promiseQueue,
-    createMetricsPartialSuccessHandler()
-  );
+    responseHandler: createMetricsPartialSuccessHandler(),
+  });
 
   return createOtlpMetricsExporter(
     exportDelegate,

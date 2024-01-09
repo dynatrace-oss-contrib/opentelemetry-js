@@ -14,5 +14,9 @@
  * limitations under the License.
  */
 
-export { SendBeaconParams, SendBeaconTransport } from './send-beacon-transport';
-export { XhrRequestParameters, XhrTransport } from './xhr-transport';
+export {
+  SendBeaconParams,
+  createSendBeaconTransport,
+} from './send-beacon-transport';
+export { XhrRequestParameters, createXhrTransport } from './xhr-transport';
+export { REQUIRED_HEADERS } from './required-headers';
