@@ -45,4 +45,7 @@ export const VERSION = '${pjson.version}';
 
 const fileUrl = path.join(appRoot, "src", "version.ts")
 
+fs.mkdirSync(path.dirname(fileUrl), {
+  recursive: true
+})
 fs.writeFileSync(fileUrl, content);
