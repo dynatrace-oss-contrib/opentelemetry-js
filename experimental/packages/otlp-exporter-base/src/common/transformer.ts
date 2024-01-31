@@ -14,13 +14,9 @@
  * limitations under the License.
  */
 
-// Legacy exporter kept for compatibility, scheduled for removal in 2.0
-export { OTLPMetricExporter } from './legacy/OTLPMetricExporter';
-
-export {
-  // New exporter factory function and config.
-  createMetricsExporter,
-  OtlpHttpProtoMetricsConfiguration,
-  // Scheduled for removal in 2.0
-  LegacyConfig,
-} from './platform';
+/**
+ * Transforms the internal signal-specific representation to a OTLP request representation
+ */
+export interface ITransformer<InternalSignalRepresentation, Request> {
+  transform(internalRepresentation: InternalSignalRepresentation): Request;
+}

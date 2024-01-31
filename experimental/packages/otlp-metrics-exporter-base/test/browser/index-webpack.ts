@@ -13,14 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+const testsContext = require.context('../browser', true, /test$/);
+testsContext.keys().forEach(testsContext);
 
-// Legacy exporter kept for compatibility, scheduled for removal in 2.0
-export { OTLPMetricExporter } from './legacy/OTLPMetricExporter';
+const testsContextCommon = require.context('../common', true, /test$/);
+testsContextCommon.keys().forEach(testsContextCommon);
 
-export {
-  // New exporter factory function and config.
-  createMetricsExporter,
-  OtlpHttpProtoMetricsConfiguration,
-  // Scheduled for removal in 2.0
-  LegacyConfig,
-} from './platform';
+const srcContext = require.context('.', true, /src$/);
+srcContext.keys().forEach(srcContext);

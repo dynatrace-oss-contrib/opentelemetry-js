@@ -14,13 +14,10 @@
  * limitations under the License.
  */
 
-// Legacy exporter kept for compatibility, scheduled for removal in 2.0
-export { OTLPMetricExporter } from './legacy/OTLPMetricExporter';
-
-export {
-  // New exporter factory function and config.
-  createMetricsExporter,
-  OtlpHttpProtoMetricsConfiguration,
-  // Scheduled for removal in 2.0
-  LegacyConfig,
-} from './platform';
+/**
+ * Serializes and deserializes the OTLP request/response to and from {@link Uint8Array}
+ */
+export interface ISerializer<Request, Response> {
+  serializeRequest(request: Request): Uint8Array | undefined;
+  deserializeResponse(data: Uint8Array): Response;
+}

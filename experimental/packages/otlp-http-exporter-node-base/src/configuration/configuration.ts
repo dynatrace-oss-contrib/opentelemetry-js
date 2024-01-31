@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-// Legacy exporter kept for compatibility, scheduled for removal in 2.0
-export { OTLPMetricExporter } from './legacy/OTLPMetricExporter';
+// NOTE: do not change these type imports to actual imports. Doing so WILL break `@opentelemetry/instrumentation-http`,
+// as they'd be imported before the http/https modules can be wrapped.
+import type { AgentOptions as HttpAgentOptions } from 'http';
+import type { AgentOptions as HttpsAgentOptions } from 'https';
 
-export {
-  // New exporter factory function and config.
-  createMetricsExporter,
-  OtlpHttpProtoMetricsConfiguration,
-  // Scheduled for removal in 2.0
-  LegacyConfig,
-} from './platform';
+/**
+ * Node-specific extra configuration options for backward compatibility with older exporters.
+ */
+export interface NodeHttpConfiguration {
+  agentOptions: HttpAgentOptions | HttpsAgentOptions;
+}

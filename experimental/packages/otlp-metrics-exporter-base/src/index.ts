@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-// Legacy exporter kept for compatibility, scheduled for removal in 2.0
-export { OTLPMetricExporter } from './legacy/OTLPMetricExporter';
-
+export { MetricsConfiguration } from './configuration/types';
+export { mergeMetricsConfigurationWithDefaults } from './configuration/merge-with-defaults';
+export { getMetricsConfigurationFromEnvironment } from './configuration/get-from-environment';
 export {
-  // New exporter factory function and config.
-  createMetricsExporter,
-  OtlpHttpProtoMetricsConfiguration,
-  // Scheduled for removal in 2.0
-  LegacyConfig,
-} from './platform';
+  CumulativeTemporalitySelector,
+  DeltaTemporalitySelector,
+  LowMemoryTemporalitySelector,
+} from './configuration/temporality-selectors';
+export { IMetricsSerializer } from './metrics-serializer';
+export { createOtlpMetricsExporter } from './otlp-metrics-exporter';
+export { createMetricsPartialSuccessHandler } from './partial-success-handler';
