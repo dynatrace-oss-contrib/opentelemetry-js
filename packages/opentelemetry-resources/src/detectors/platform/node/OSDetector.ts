@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-import { Detector } from '../../types';
-import { ResourceDetectionConfig } from '../../config';
-import { IResource } from '../../IResource';
 import { osDetectorSync } from './OSDetectorSync';
+import { Detector } from '../../../types';
+import { ResourceDetectionConfig } from '../../../config';
+import { IResource } from '../../../IResource';
 
 /**
  * OSDetector detects the resources related to the operating system (OS) on

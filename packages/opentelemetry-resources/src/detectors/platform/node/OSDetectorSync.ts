@@ -15,11 +15,11 @@
  */
 
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
-import { Resource } from '../../Resource';
-import { DetectorSync, ResourceAttributes } from '../../types';
-import { ResourceDetectionConfig } from '../../config';
 import { platform, release } from 'os';
 import { normalizeType } from './utils';
+import { DetectorSync, ResourceAttributes } from '../../../types';
+import { ResourceDetectionConfig } from '../../../config';
+import { Resource } from '../../../Resource';
 
 /**
  * OSDetectorSync detects the resources related to the operating system (OS) on
