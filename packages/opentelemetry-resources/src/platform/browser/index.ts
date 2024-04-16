@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-export * from './default-service-name';
-export * from './HostDetector';
-export * from './OSDetector';
-export * from './HostDetectorSync';
-export * from './OSDetectorSync';
-export * from './ProcessDetector';
-export * from './ProcessDetectorSync';
-export * from './ServiceInstanceIdDetectorSync';
+export { defaultServiceName } from './default-service-name';
+export { hostDetector } from './HostDetector';
+export { osDetector } from './OSDetector';
+export { hostDetectorSync } from './HostDetectorSync';
+export { osDetectorSync } from './OSDetectorSync';
+export { processDetector } from './ProcessDetector';
+export { processDetectorSync } from './ProcessDetectorSync';
+export { serviceInstanceIdDetectorSync } from './ServiceInstanceIdDetectorSync';

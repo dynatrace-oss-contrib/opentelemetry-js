@@ -14,4 +14,13 @@
  * limitations under the License.
  */
 
-export * from './node';
+export {
+  processDetector,
+  osDetectorSync,
+  hostDetectorSync,
+  hostDetector,
+  processDetectorSync,
+  osDetector,
+  serviceInstanceIdDetectorSync,
+  defaultServiceName,
+} from './node';

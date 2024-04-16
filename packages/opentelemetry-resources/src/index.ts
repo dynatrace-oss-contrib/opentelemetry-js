@@ -14,10 +14,24 @@
  * limitations under the License.
  */
 
-export * from './Resource';
-export * from './IResource';
-export * from './platform';
-export * from './types';
-export * from './config';
-export * from './detectors';
-export * from './detect-resources';
+export { Resource } from './Resource';
+export { IResource } from './IResource';
+export {
+  processDetector,
+  processDetectorSync,
+  hostDetectorSync,
+  osDetector,
+  osDetectorSync,
+  hostDetector,
+  serviceInstanceIdDetectorSync,
+  defaultServiceName,
+} from './platform';
+export { ResourceAttributes, DetectorSync, Detector } from './types';
+export { ResourceDetectionConfig } from './config';
+export {
+  browserDetector,
+  browserDetectorSync,
+  envDetectorSync,
+  envDetector,
+} from './detectors';
+export { detectResourcesSync, detectResources } from './detect-resources';
