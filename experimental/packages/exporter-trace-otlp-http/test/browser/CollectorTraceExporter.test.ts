@@ -151,11 +151,15 @@ describe('OTLPTraceExporter - web', () => {
         collectorTraceExporter.export(spans, () => {});
 
         setTimeout(() => {
-          const response: any = spyLoggerDebug.args[2][0];
-          assert.strictEqual(response, 'sendBeacon - can send');
-          assert.strictEqual(spyLoggerError.args.length, 0);
+          try {
+            const response: any = spyLoggerDebug.args[2][0];
+            assert.strictEqual(response, 'sendBeacon - can send');
+            assert.strictEqual(spyLoggerError.args.length, 0);
 
-          done();
+            done();
+          } catch (e) {
+            done(e);
+          }
         });
       });
 
@@ -163,9 +167,13 @@ describe('OTLPTraceExporter - web', () => {
         stubBeacon.returns(false);
 
         collectorTraceExporter.export(spans, result => {
-          assert.deepStrictEqual(result.code, ExportResultCode.FAILED);
-          assert.ok(result.error?.message.includes('cannot send'));
-          done();
+          try {
+            assert.deepStrictEqual(result.code, ExportResultCode.FAILED);
+            assert.ok(result.error?.message.includes('cannot send'));
+            done();
+          } catch (e) {
+            done(e);
+          }
         });
       });
     });
@@ -235,20 +243,31 @@ describe('OTLPTraceExporter - web', () => {
         queueMicrotask(() => {
           const request = server.requests[0];
           request.respond(200);
-          const response: any = spyLoggerDebug.args[2][0];
-          assert.strictEqual(response, 'xhr success');
-          assert.strictEqual(spyLoggerError.args.length, 0);
-          assert.strictEqual(stubBeacon.callCount, 0);
-
-          clock.restore();
-          done();
+          queueMicrotask(() => {
+            queueMicrotask(() => {
+              try {
+                const response: any = spyLoggerDebug.args[2][0];
+                assert.strictEqual(response, 'xhr success');
+                assert.strictEqual(spyLoggerError.args.length, 0);
+                assert.strictEqual(stubBeacon.callCount, 0);
+                clock.restore();
+                done();
+              } catch (e) {
+                done(e);
+              }
+            });
+          });
         });
       });
 
       it('should log the error message', done => {
         collectorTraceExporter.export(spans, result => {
-          assert.deepStrictEqual(result.code, ExportResultCode.FAILED);
-          assert.ok(result.error?.message.includes('Failed to export'));
+          try {
+            assert.deepStrictEqual(result.code, ExportResultCode.FAILED);
+            assert.ok(result.error?.message.includes('Failed to export'));
+          } catch (e) {
+            done(e);
+          }
           done();
         });
 
@@ -425,13 +444,16 @@ describe('OTLPTraceExporter - web', () => {
         clock.restore();
 
         setTimeout(() => {
-          const result = responseSpy.args[0][0] as core.ExportResult;
-          assert.strictEqual(result.code, core.ExportResultCode.FAILED);
-          const error = result.error as OTLPExporterError;
-          assert.ok(error !== undefined);
-          assert.strictEqual(error.message, 'Request Timeout');
-
-          done();
+          try {
+            const result = responseSpy.args[0][0] as core.ExportResult;
+            assert.strictEqual(result.code, core.ExportResultCode.FAILED);
+            const error = result.error as OTLPExporterError;
+            assert.ok(error !== undefined);
+            assert.strictEqual(error.message, 'Request Timeout');
+            done();
+          } catch (e) {
+            done(e);
+          }
         });
       });
     });
@@ -455,15 +477,19 @@ describe('OTLPTraceExporter - web', () => {
 
       setTimeout(() => {
         // Expect 4 failures
-        assert.strictEqual(failures.length, 4);
-        failures.forEach(([result]) => {
-          assert.strictEqual(result.code, ExportResultCode.FAILED);
-          assert.strictEqual(
-            result.error!.message,
-            'Concurrent export limit reached'
-          );
-        });
-        done();
+        try {
+          assert.strictEqual(failures.length, 4);
+          failures.forEach(([result]) => {
+            assert.strictEqual(result.code, ExportResultCode.FAILED);
+            assert.strictEqual(
+              result.error!.message,
+              'Concurrent export limit reached'
+            );
+          });
+          done();
+        } catch (e) {
+          done(e);
+        }
       });
     });
   });
@@ -528,12 +554,16 @@ describe('export with retry - real http request destroyed', () => {
       );
 
       collectorTraceExporter.export(spans, result => {
-        assert.strictEqual(result.code, core.ExportResultCode.FAILED);
-        const error = result.error as OTLPExporterError;
-        assert.ok(error !== undefined);
-        assert.strictEqual(error.message, 'Request Timeout');
-        assert.strictEqual(retry, 1);
-        done();
+        try {
+          assert.strictEqual(result.code, core.ExportResultCode.FAILED);
+          const error = result.error as OTLPExporterError;
+          assert.ok(error !== undefined);
+          assert.strictEqual(error.message, 'Request Timeout');
+          assert.strictEqual(retry, 1);
+          done();
+        } catch (e) {
+          done(e);
+        }
       });
     }).timeout(3000);
 
@@ -551,12 +581,16 @@ describe('export with retry - real http request destroyed', () => {
       );
 
       collectorTraceExporter.export(spans, result => {
-        assert.strictEqual(result.code, core.ExportResultCode.FAILED);
-        const error = result.error as OTLPExporterError;
-        assert.ok(error !== undefined);
-        assert.strictEqual(error.message, 'Request Timeout');
-        assert.strictEqual(retry, 1);
-        done();
+        try {
+          assert.strictEqual(result.code, core.ExportResultCode.FAILED);
+          const error = result.error as OTLPExporterError;
+          assert.ok(error !== undefined);
+          assert.strictEqual(error.message, 'Request Timeout');
+          assert.strictEqual(retry, 1);
+          done();
+        } catch (e) {
+          done(e);
+        }
       });
     }).timeout(3000);
     it('should log the timeout request error message when retry-after header is a date', done => {
@@ -575,12 +609,16 @@ describe('export with retry - real http request destroyed', () => {
       );
 
       collectorTraceExporter.export(spans, result => {
-        assert.strictEqual(result.code, core.ExportResultCode.FAILED);
-        const error = result.error as OTLPExporterError;
-        assert.ok(error !== undefined);
-        assert.strictEqual(error.message, 'Request Timeout');
-        assert.strictEqual(retry, 2);
-        done();
+        try {
+          assert.strictEqual(result.code, core.ExportResultCode.FAILED);
+          const error = result.error as OTLPExporterError;
+          assert.ok(error !== undefined);
+          assert.strictEqual(error.message, 'Request Timeout');
+          assert.strictEqual(retry, 2);
+          done();
+        } catch (e) {
+          done(e);
+        }
       });
     }).timeout(3000);
     it('should log the timeout request error message when retry-after header is a date with long delay', done => {
@@ -599,12 +637,16 @@ describe('export with retry - real http request destroyed', () => {
       );
 
       collectorTraceExporter.export(spans, result => {
-        assert.strictEqual(result.code, core.ExportResultCode.FAILED);
-        const error = result.error as OTLPExporterError;
-        assert.ok(error !== undefined);
-        assert.strictEqual(error.message, 'Request Timeout');
-        assert.strictEqual(retry, 1);
-        done();
+        try {
+          assert.strictEqual(result.code, core.ExportResultCode.FAILED);
+          const error = result.error as OTLPExporterError;
+          assert.ok(error !== undefined);
+          assert.strictEqual(error.message, 'Request Timeout');
+          assert.strictEqual(retry, 1);
+          done();
+        } catch (e) {
+          done(e);
+        }
       });
     }).timeout(3000);
   });

@@ -15,13 +15,14 @@
  */
 
 import { OTLPExporterBase } from '../../OTLPExporterBase';
-import { OTLPExporterConfigBase } from '../../types';
-import * as otlpTypes from '../../types';
+import { OTLPExporterConfigBase, OTLPExporterError } from '../../types';
 import { parseHeaders } from '../../util';
-import { sendWithBeacon, sendWithXhr } from './util';
 import { diag } from '@opentelemetry/api';
 import { getEnv, baggageUtils } from '@opentelemetry/core';
 import { ISerializer } from '@opentelemetry/otlp-transformer';
+import { IExporterTransport } from '../../exporter-transport';
+import { createXhrTransport } from './xhr-transport';
+import { createSendBeaconTransport } from './send-beacon-transport';
 
 /**
  * Collector Metric Exporter abstract base class
@@ -30,10 +31,9 @@ export abstract class OTLPExporterBrowserBase<
   ExportItem,
   ServiceResponse,
 > extends OTLPExporterBase<OTLPExporterConfigBase, ExportItem> {
-  protected _headers: Record<string, string>;
   private _useXHR: boolean = false;
-  private _contentType: string;
   private _serializer: ISerializer<ExportItem[], ServiceResponse>;
+  private _transport: IExporterTransport;
 
   /**
    * @param config
@@ -47,19 +47,26 @@ export abstract class OTLPExporterBrowserBase<
   ) {
     super(config);
     this._serializer = serializer;
-    this._contentType = contentType;
     this._useXHR =
       !!config.headers || typeof navigator.sendBeacon !== 'function';
     if (this._useXHR) {
-      this._headers = Object.assign(
-        {},
-        parseHeaders(config.headers),
-        baggageUtils.parseKeyPairsIntoRecord(
-          getEnv().OTEL_EXPORTER_OTLP_HEADERS
-        )
-      );
+      this._transport = createXhrTransport({
+        blobType: contentType,
+        headers: Object.assign(
+          {},
+          parseHeaders(config.headers),
+          baggageUtils.parseKeyPairsIntoRecord(
+            getEnv().OTEL_EXPORTER_OTLP_HEADERS
+          )
+        ),
+        url: this.url,
+        timeoutMillis: this.timeoutMillis,
+      });
     } else {
-      this._headers = {};
+      this._transport = createSendBeaconTransport({
+        url: this.url,
+        blobType: contentType,
+      });
     }
   }
 
@@ -68,39 +75,32 @@ export abstract class OTLPExporterBrowserBase<
   onShutdown(): void {}
 
   send(
-    items: ExportItem[],
+    objects: ExportItem[],
     onSuccess: () => void,
-    onError: (error: otlpTypes.OTLPExporterError) => void
+    onError: (error: OTLPExporterError) => void
   ): void {
     if (this._shutdownOnce.isCalled) {
       diag.debug('Shutdown already started. Cannot send objects');
       return;
     }
-    const body = this._serializer.serializeRequest(items) ?? new Uint8Array();
 
-    const promise = new Promise<void>((resolve, reject) => {
-      if (this._useXHR) {
-        sendWithXhr(
-          body,
-          this.url,
-          {
-            ...this._headers,
-            'Content-Type': this._contentType,
-          },
-          this.timeoutMillis,
-          resolve,
-          reject
-        );
-      } else {
-        sendWithBeacon(
-          body,
-          this.url,
-          { type: this._contentType },
-          resolve,
-          reject
-        );
+    const data = this._serializer.serializeRequest(objects);
+
+    if (data == null) {
+      onError(new Error('Could not serialize message'));
+      return;
+    }
+
+    const promise = this._transport.send(data).then(response => {
+      if (response.status === 'success') {
+        onSuccess();
+        return;
       }
-    }).then(onSuccess, onError);
+      if (response.status === 'failure' && response.error) {
+        onError(response.error);
+      }
+      onError(new OTLPExporterError('Export failed with unknown error'));
+    }, onError);
 
     this._sendingPromises.push(promise);
     const popPromise = () => {
