@@ -444,7 +444,7 @@ describe('OTLPTraceExporter - web', () => {
       it('should log the timeout request error message', done => {
         const responseSpy = sinon.spy();
         collectorTraceExporter.export(spans, responseSpy);
-        clock.tick(10000);
+        clock.tick(20000);
         clock.restore();
 
         setTimeout(() => {
@@ -453,7 +453,7 @@ describe('OTLPTraceExporter - web', () => {
             assert.strictEqual(result.code, core.ExportResultCode.FAILED);
             const error = result.error as OTLPExporterError;
             assert.ok(error !== undefined);
-            assert.strictEqual(error.message, 'Request Timeout');
+            assert.strictEqual(error.message, 'XHR request timed out');
             done();
           } catch (e) {
             done(e);

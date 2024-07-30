@@ -61,7 +61,7 @@ class XhrTransport implements IExporterTransport {
               xhr.getResponseHeader('Retry-After')
             ),
           });
-        } else {
+        } else if (xhr.status !== 0) {
           resolve({
             status: 'failure',
             error: new Error('XHR request failed with non-retryable status'),
