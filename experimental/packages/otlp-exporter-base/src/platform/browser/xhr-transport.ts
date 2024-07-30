@@ -17,6 +17,7 @@
 import { IExporterTransport } from '../../exporter-transport';
 import { ExportResponse } from '../../export-response';
 import { isExportRetryable, parseRetryAfterToMills } from '../../util';
+import { diag } from '@opentelemetry/api';
 
 export interface XhrRequestParameters {
   timeoutMillis: number;
@@ -49,6 +50,7 @@ class XhrTransport implements IExporterTransport {
 
       xhr.onreadystatechange = () => {
         if (xhr.status >= 200 && xhr.status <= 299) {
+          diag.debug('XHR success');
           resolve({
             status: 'success',
           });

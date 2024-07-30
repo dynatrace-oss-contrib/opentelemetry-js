@@ -150,10 +150,10 @@ describe('OTLPTraceExporter - web', () => {
 
         collectorTraceExporter.export(spans, () => {});
 
-        setTimeout(() => {
+        queueMicrotask(() => {
           try {
             const response: any = spyLoggerDebug.args[2][0];
-            assert.strictEqual(response, 'sendBeacon - can send');
+            assert.strictEqual(response, 'SendBeacon success');
             assert.strictEqual(spyLoggerError.args.length, 0);
 
             done();
@@ -169,7 +169,11 @@ describe('OTLPTraceExporter - web', () => {
         collectorTraceExporter.export(spans, result => {
           try {
             assert.deepStrictEqual(result.code, ExportResultCode.FAILED);
-            assert.ok(result.error?.message.includes('cannot send'));
+            assert.ok(
+              result.error,
+              'Expected Error, but no Error was present on the result'
+            );
+            assert.match(result.error?.message, /SendBeacon failed/);
             done();
           } catch (e) {
             done(e);
@@ -187,8 +191,8 @@ describe('OTLPTraceExporter - web', () => {
         clock = sinon.useFakeTimers();
 
         (window.navigator as any).sendBeacon = false;
-        collectorTraceExporter = new OTLPTraceExporter(collectorExporterConfig);
         server = sinon.fakeServer.create();
+        collectorTraceExporter = new OTLPTraceExporter(collectorExporterConfig);
       });
       afterEach(() => {
         server.restore();
@@ -197,15 +201,15 @@ describe('OTLPTraceExporter - web', () => {
       it('should successfully send the spans using XMLHttpRequest', done => {
         collectorTraceExporter.export(spans, () => {});
 
-        queueMicrotask(() => {
+        queueMicrotask(async () => {
           const request = server.requests[0];
           assert.strictEqual(request.method, 'POST');
           assert.strictEqual(request.url, 'http://foo.bar.com');
 
-          const body = request.requestBody;
+          const body = request.requestBody as Blob;
           const decoder = new TextDecoder();
           const json = JSON.parse(
-            decoder.decode(body)
+            decoder.decode(await body.arrayBuffer())
           ) as IExportTraceServiceRequest;
           const span1 = json.resourceSpans?.[0].scopeSpans?.[0].spans?.[0];
 
@@ -247,7 +251,7 @@ describe('OTLPTraceExporter - web', () => {
             queueMicrotask(() => {
               try {
                 const response: any = spyLoggerDebug.args[2][0];
-                assert.strictEqual(response, 'xhr success');
+                assert.strictEqual(response, 'XHR success');
                 assert.strictEqual(spyLoggerError.args.length, 0);
                 assert.strictEqual(stubBeacon.callCount, 0);
                 clock.restore();

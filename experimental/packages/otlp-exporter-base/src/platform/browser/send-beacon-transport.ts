@@ -16,6 +16,7 @@
 
 import { IExporterTransport } from '../../exporter-transport';
 import { ExportResponse } from '../../export-response';
+import { diag } from '@opentelemetry/api';
 
 export interface SendBeaconParams {
   url: string;
@@ -36,6 +37,7 @@ class SendBeaconTransport implements IExporterTransport {
         )
       ) {
         // no way to signal retry, treat everything as success
+        diag.debug('SendBeacon success');
         resolve({
           status: 'success',
         });
