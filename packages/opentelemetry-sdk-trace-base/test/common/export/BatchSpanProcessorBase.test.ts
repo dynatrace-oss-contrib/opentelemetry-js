@@ -374,16 +374,31 @@ describe('BatchSpanProcessorBase', () => {
 
         clock.tick(defaultBufferConfig.scheduledDelayMillis + 1000);
         clock.restore();
-        setTimeout(async () => {
-          assert.strictEqual(errorHandlerSpy.callCount, 1);
+        setTimeout(() => {
+          try {
+            assert.strictEqual(errorHandlerSpy.callCount, 1);
+            const [[error]] = errorHandlerSpy.args;
 
-          const [[error]] = errorHandlerSpy.args;
+            // includes stack of the original error
+            assert.ok(
+              (error as Error).stack?.includes(expectedError.stack!),
+              'Expected ' + error.stack + ' to contain ' + expectedError.stack
+            );
 
-          assert.deepStrictEqual(error, expectedError);
+            // new stack now includes the BatchSpanProcessorBase
+            assert.ok(
+              (error as Error).stack?.includes('BatchSpanProcessorBase'),
+              'Expected Stack to include BatchSpanProcessor'
+            );
 
-          //reset global error handler
-          setGlobalErrorHandler(loggingErrorHandler());
-          done();
+            //reset global error handler
+            setGlobalErrorHandler(loggingErrorHandler());
+            done();
+          } catch (e) {
+            //reset global error handler
+            setGlobalErrorHandler(loggingErrorHandler());
+            done(e);
+          }
         });
       });
 

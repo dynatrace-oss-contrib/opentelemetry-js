@@ -1,6 +1,6 @@
 'use strict';
 
-const { BasicTracerProvider, ConsoleSpanExporter, SimpleSpanProcessor } = require('@opentelemetry/sdk-trace-base');
+const { BasicTracerProvider, ConsoleSpanExporter, SimpleSpanProcessor, BatchSpanProcessor} = require('@opentelemetry/sdk-trace-base');
 const { Resource } = require('@opentelemetry/resources');
 const { SEMRESATTRS_SERVICE_NAME } = require('@opentelemetry/semantic-conventions');
 const {
@@ -10,8 +10,8 @@ const {
   DiagConsoleLogger,
   DiagLogLevel,
 } = require('@opentelemetry/api');
-const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-http');
-// const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-grpc');
+// const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-http');
+const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-grpc');
 // const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-proto');
 
 diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
@@ -27,7 +27,7 @@ const provider = new BasicTracerProvider({
     [SEMRESATTRS_SERVICE_NAME]: 'basic-service',
   }),
 });
-provider.addSpanProcessor(new SimpleSpanProcessor(exporter));
+provider.addSpanProcessor(new BatchSpanProcessor(exporter));
 provider.addSpanProcessor(new SimpleSpanProcessor(new ConsoleSpanExporter()));
 provider.register();
 
@@ -44,7 +44,7 @@ parentSpan.end();
 // give some time before it is closed
 setTimeout(() => {
   // flush and close the connection.
-  exporter.shutdown();
+  provider.shutdown();
 }, 2000);
 
 function doWork(parent) {

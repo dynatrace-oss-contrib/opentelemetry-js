@@ -195,10 +195,13 @@ export abstract class BatchSpanProcessorBase<T extends BufferConfig>
             if (result.code === ExportResultCode.SUCCESS) {
               resolve();
             } else {
-              reject(
-                result.error ??
-                  new Error('BatchSpanProcessor: span export failed')
-              );
+              // workaround: cause for Error constructor options only exists starting ES2022, but we're compiling to ES5
+              const error = new Error('BatchSpanProcessor: span export failed');
+              // stack is not specified, so safeguarding the use by ensuring that the property exists and is a string.
+              if (result.error != null && typeof error.stack === 'string') {
+                error.stack += '\nCaused by: ' + result.error.stack;
+              }
+              reject(error);
             }
           });
 

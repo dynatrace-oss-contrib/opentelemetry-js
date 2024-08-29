@@ -2,6 +2,7 @@ receivers:
   otlp:
     protocols:
       grpc:
+        endpoint: "0.0.0.0:4317"
       http:
         cors:
           allowed_origins:
@@ -13,6 +14,8 @@ exporters:
     endpoint: "http://zipkin-all-in-one:9411/api/v2/spans"
   prometheus:
     endpoint: "0.0.0.0:9464"
+  debug:
+    verbosity: detailed
 
 processors:
   batch:
@@ -28,5 +31,4 @@ service:
       processors: [batch]
     metrics:
       receivers: [otlp]
-      exporters: [prometheus]
-      processors: [batch]
+      exporters: [debug]
