@@ -767,7 +767,7 @@ export const getIncomingRequestAttributes = (
   const userAgent = headers['user-agent'];
   const ips = headers['x-forwarded-for'];
   const httpVersion = request.httpVersion;
-  // TODO: is hostname even ever set on url for incoming message? I don't think so
+  // TODO: is there a way host is not set? I don't think so
   const host = headers.host;
   let hostname = 'localhost';
   if (host != null && host !== '') {
