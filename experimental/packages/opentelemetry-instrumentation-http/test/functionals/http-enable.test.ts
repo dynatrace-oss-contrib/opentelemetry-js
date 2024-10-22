@@ -1035,6 +1035,10 @@ describe('HttpInstrumentation', () => {
 
         assert.deepStrictEqual(warnMessages, []);
       });
+
+      it('should not throw with non-ascii characters in the request path', async () => {
+        await httpRequest.get(`${protocol}://${hostname}:${serverPort}/привет`);
+      });
     });
 
     describe('with semconv stability set to http', () => {

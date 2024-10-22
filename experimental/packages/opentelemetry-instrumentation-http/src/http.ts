@@ -588,9 +588,21 @@ export class HttpInstrumentation extends InstrumentationBase<HttpInstrumentation
 
       const request = args[0] as http.IncomingMessage;
       const response = args[1] as http.ServerResponse & { socket: Socket };
-      const pathname = request.url
-        ? url.parse(request.url).pathname || '/'
-        : '/';
+      let pathname: string;
+      if (request.url) {
+        try {
+          // TODO: this is incredibly stupid and dangerous
+          const parsedUrl = new URL(
+            request.url,
+            `${component}://${request.headers.host}`
+          );
+          pathname = parsedUrl.pathname || '/';
+        } catch (e) {
+          pathname = '/';
+        }
+      } else {
+        pathname = '/';
+      }
       const method = request.method || 'GET';
 
       instrumentation._diag.debug(

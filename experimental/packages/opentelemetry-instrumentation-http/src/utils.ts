@@ -268,6 +268,48 @@ export const isCompressed = (
 };
 
 /**
+ * Utility function that converts a URL object into an ordinary options object
+ * as expected by the `http.request` and `https.request` APIs.
+ *
+ * Mimicks what node.js does
+ *
+ * @param {URL} url
+ * @returns {Record<string, unknown>}
+ */
+function urlToHttpOptions(url: URL): RequestOptions {
+  const { hostname, pathname, port, username, password, search } = url;
+  const options = {
+    __proto__: null,
+    ...url, // In case the url object was extended by the user.
+    protocol: url.protocol,
+    hostname:
+      hostname && hostname[0] === '['
+        ? hostname.slice(1, hostname.length - 1)
+        : hostname,
+    hash: url.hash,
+    search: search,
+    pathname: pathname,
+    path: `${pathname || ''}${search || ''}`,
+    href: url.href,
+    origin: url.origin,
+    host: url.host,
+  };
+  if (port !== '') {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore this is how Node.js does it.
+    options.port = Number(port);
+  }
+  if (username || password) {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore this is how Node.js does it.
+    options.auth = `${decodeURIComponent(username)}:${decodeURIComponent(
+      password
+    )}`;
+  }
+  return options;
+}
+
+/**
  * Makes sure options is an url object
  * return an object with default value and parsed options
  * @param options original options for the request
@@ -286,8 +328,18 @@ export const getRequestInfo = (
   let origin = '';
   let optionsParsed: RequestOptions;
   if (typeof options === 'string') {
-    optionsParsed = url.parse(options);
-    pathname = (optionsParsed as url.UrlWithStringQuery).pathname || '/';
+    try {
+      const urlParsed = new URL(options);
+      optionsParsed = urlToHttpOptions(urlParsed);
+      pathname = urlParsed.pathname || '/';
+    } catch (e) {
+      // for backward compatibility with url.parse()
+      optionsParsed = {
+        path: options,
+      };
+      pathname = optionsParsed.path || '/';
+    }
+
     origin = `${optionsParsed.protocol || 'http:'}//${optionsParsed.host}`;
     if (extraOptions !== undefined) {
       Object.assign(optionsParsed, extraOptions);
@@ -314,12 +366,19 @@ export const getRequestInfo = (
     }
   } else {
     optionsParsed = Object.assign(
+      // TODO: I don't understand why it is this options.host. should it be protocol?
       { protocol: options.host ? 'http:' : undefined },
       options
     );
     pathname = (options as url.URL).pathname;
     if (!pathname && optionsParsed.path) {
-      pathname = url.parse(optionsParsed.path).pathname || '/';
+      try {
+        // TODO: this is incredibly stupid and dangerous
+        const url = new URL(optionsParsed.path, 'http://example.com');
+        pathname = url.pathname || '/';
+      } catch (e) {
+        pathname = '/';
+      }
     }
     const hostname =
       optionsParsed.host ||
@@ -708,12 +767,12 @@ export const getIncomingRequestAttributes = (
   const userAgent = headers['user-agent'];
   const ips = headers['x-forwarded-for'];
   const httpVersion = request.httpVersion;
-  const requestUrl = request.url ? url.parse(request.url) : null;
-  const host = requestUrl?.host || headers.host;
-  const hostname =
-    requestUrl?.hostname ||
-    host?.replace(/^(.*)(:[0-9]{1,5})/, '$1') ||
-    'localhost';
+  // TODO: is hostname even ever set on url for incoming message? I don't think so
+  const host = headers.host;
+  let hostname = 'localhost';
+  if (host != null && host !== '') {
+    hostname = host?.replace(/^(.*)(:[0-9]{1,5})/, '$1');
+  }
 
   const method = request.method;
   const normalizedMethod = normalizeMethod(method);
@@ -733,8 +792,19 @@ export const getIncomingRequestAttributes = (
     [ATTR_USER_AGENT_ORIGINAL]: userAgent,
   };
 
-  if (requestUrl?.pathname != null) {
-    newAttributes[ATTR_URL_PATH] = requestUrl.pathname;
+  let parsedUrl: URL | undefined = undefined;
+  try {
+    // TODO: this is incredibly stupid and dangerous
+    parsedUrl = new URL(
+      request.url ?? '/',
+      `${options.component}://${request.headers.host}`
+    );
+  } catch (e) {
+    // nothing to do - parsedUul will stay undefined
+  }
+
+  if (parsedUrl?.pathname != null) {
+    newAttributes[ATTR_URL_PATH] = parsedUrl.pathname;
   }
 
   if (remoteClientAddress != null) {
@@ -751,11 +821,7 @@ export const getIncomingRequestAttributes = (
   }
 
   const oldAttributes: Attributes = {
-    [SEMATTRS_HTTP_URL]: getAbsoluteUrl(
-      requestUrl,
-      headers,
-      `${options.component}:`
-    ),
+    [SEMATTRS_HTTP_URL]: parsedUrl?.toString(),
     [SEMATTRS_HTTP_HOST]: host,
     [SEMATTRS_NET_HOST_NAME]: hostname,
     [SEMATTRS_HTTP_METHOD]: method,
@@ -770,8 +836,9 @@ export const getIncomingRequestAttributes = (
     oldAttributes[SEMATTRS_HTTP_SERVER_NAME] = serverName;
   }
 
-  if (requestUrl) {
-    oldAttributes[SEMATTRS_HTTP_TARGET] = requestUrl.path || '/';
+  if (parsedUrl?.pathname) {
+    oldAttributes[SEMATTRS_HTTP_TARGET] =
+      parsedUrl?.pathname + parsedUrl?.search || '/';
   }
 
   if (userAgent !== undefined) {
