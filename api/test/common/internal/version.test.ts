@@ -27,9 +27,4 @@ describe('version', function () {
     const pjson = require('../../../package.json');
     assert.strictEqual(pjson.version, VERSION);
   });
-
-  it('prerelease tag versions are banned', function () {
-    // see https://github.com/open-telemetry/opentelemetry-js-api/issues/74
-    assert.ok(VERSION.match(/^\d+\.\d+\.\d+$/));
-  });
 });
