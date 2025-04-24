@@ -52,6 +52,7 @@ const ignoredLernaProjects = [
   'examples/http',
   'examples/https',
   'examples/esm-http-ts',
+  'experimental/packages/shimmer',
 ];
 
 let dryRun = false;

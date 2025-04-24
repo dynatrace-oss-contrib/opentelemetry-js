@@ -1,0 +1,30 @@
+{
+  "name": "@opentelemetry/shimmer",
+  "version": "0.200.0",
+  "description": "Safe(r) monkeypatching for JavaScript.",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "test": "mocha test/**/*.test.js"
+  },
+  "files": [
+    "index.d.ts",
+    "index.js",
+    "LICENSE",
+    "README.md"
+  ],
+  "repository": "open-telemetry/opentelemetry-js",
+  "keywords": [
+    "monkeypatch",
+    "swizzle",
+    "wrapping",
+    "danger",
+    "hmm",
+    "shim"
+  ],
+  "author": "OpenTelemetry Authors",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "sinon": "15.1.2"
+  }
+}
