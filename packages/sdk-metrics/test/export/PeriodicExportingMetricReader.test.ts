@@ -189,6 +189,26 @@ describe('PeriodicExportingMetricReader', () => {
       );
     });
 
+    it('should not throw when using interval < default timeout', () => {
+      const exporter = new TestDeltaMetricExporter();
+      assert.doesNotThrow(
+        () =>
+          new PeriodicExportingMetricReader({
+            exporter,
+            exportIntervalMillis: 4000,
+            exportTimeoutMillis: undefined, // use defaults
+          })
+      );
+      assert.doesNotThrow(
+        () =>
+          new PeriodicExportingMetricReader({
+            exporter,
+            exportIntervalMillis: 4000,
+            // don't set exportTimeoutMillis at all -> use defaults
+          })
+      );
+    });
+
     it('should throw when interval less or equal to 0', () => {
       const exporter = new TestDeltaMetricExporter();
       assert.throws(

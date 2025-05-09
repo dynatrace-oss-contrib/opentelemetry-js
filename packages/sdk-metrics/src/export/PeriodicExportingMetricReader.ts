@@ -60,42 +60,44 @@ export class PeriodicExportingMetricReader extends MetricReader {
   private readonly _exportTimeout: number;
 
   constructor(options: PeriodicExportingMetricReaderOptions) {
+    const {
+      exporter,
+      exportIntervalMillis,
+      exportTimeoutMillis,
+      metricProducers,
+    } = options;
+
     super({
-      aggregationSelector: options.exporter.selectAggregation?.bind(
-        options.exporter
-      ),
+      aggregationSelector: exporter.selectAggregation?.bind(exporter),
       aggregationTemporalitySelector:
-        options.exporter.selectAggregationTemporality?.bind(options.exporter),
-      metricProducers: options.metricProducers,
+        exporter.selectAggregationTemporality?.bind(exporter),
+      metricProducers,
     });
 
-    if (
-      options.exportIntervalMillis !== undefined &&
-      options.exportIntervalMillis <= 0
-    ) {
+    if (exportIntervalMillis !== undefined && exportIntervalMillis <= 0) {
       throw Error('exportIntervalMillis must be greater than 0');
     }
 
-    if (
-      options.exportTimeoutMillis !== undefined &&
-      options.exportTimeoutMillis <= 0
-    ) {
+    if (exportTimeoutMillis !== undefined && exportTimeoutMillis <= 0) {
       throw Error('exportTimeoutMillis must be greater than 0');
     }
 
     if (
-      options.exportTimeoutMillis !== undefined &&
-      options.exportIntervalMillis !== undefined &&
-      options.exportIntervalMillis < options.exportTimeoutMillis
+      exportTimeoutMillis !== undefined &&
+      exportIntervalMillis !== undefined &&
+      exportIntervalMillis < exportTimeoutMillis
     ) {
       throw Error(
         'exportIntervalMillis must be greater than or equal to exportTimeoutMillis'
       );
     }
 
-    this._exportInterval = options.exportIntervalMillis ?? 60000;
-    this._exportTimeout = options.exportTimeoutMillis ?? 30000;
-    this._exporter = options.exporter;
+    this._exportInterval = exportIntervalMillis ?? 60000;
+    this._exportTimeout =
+      exportTimeoutMillis ?? // user defined input comes first.
+      exportIntervalMillis ?? // then fall back to any user-defined interval
+      30000; // then fall back to default.
+    this._exporter = exporter;
   }
 
   private async _runOnce(): Promise<void> {
