@@ -20,12 +20,34 @@ sdk.start();
 // pretend to be a tracing-channel based instrumentation.
 const tracer = trace.getTracer('db-tracing-channel-tracer');
 const OTEL_DB_TRACING_CONTEXT = Symbol('otel-db-tracing-context');
-//const contextManager = context['_getContextManager']();
 
 // Create a TracingChannel for database operations
 const dbChannel = tracingChannel('db.query');
 
-function endAndDetach(message: any) {
+function getSpanFromMessage(message: any): Span | undefined {
+  return message[OTEL_DB_TRACING_CONTEXT]?.span;
+}
+
+function getContextTokenFromMessage(message: any) {
+  return  message[OTEL_DB_TRACING_CONTEXT]?.token;
+}
+
+function getAsyncContextTokenFromMessage(message: any) {
+  return  message[OTEL_DB_TRACING_CONTEXT]?.asyncToken;
+}
+
+function getContextFromMessage(message: any) {
+  return message[OTEL_DB_TRACING_CONTEXT]?.context;
+}
+
+function ensSpanIfSync(message: any) {
+  const syncToken = getContextTokenFromMessage(message);
+  if (syncToken) {
+    getSpanFromMessage(message)?.end();
+  }
+}
+
+function endAndDetachSync(message: any) {
   // End the span
   const span = message[OTEL_DB_TRACING_CONTEXT].span;
   if (span) {
@@ -46,7 +68,7 @@ dbChannel.subscribe({
     console.log(`[TracingChannel] Starting span for: ${message.operation} - ${message.sql}`);
 
     // Start a new span for this operation - do whatever is needed to generate the span
-    const span = tracer.startSpan(`db.query.${message.operation}`, {
+    const span = getSpanFromMessage(message) ?? tracer.startSpan(`db.query.${message.operation}`, {
       attributes: {
         'db.system': 'postgresql',
         'db.statement': message.sql,
@@ -55,20 +77,57 @@ dbChannel.subscribe({
 
     // Create context with the new span and attach it
     // This uses the active context to preserve parent spans
-    const spanContext = trace.setSpan(context.active(), span);
+    const spanContext = trace.setSpan(getContextFromMessage(message) ?? context.active(), span);
     const token = context.attach?.(spanContext);
 
     // Store both on context for later cleanup
     message[OTEL_DB_TRACING_CONTEXT] = {
       token: token,
-      span: span
+      span: span,
+      context: spanContext
     };
   },
 
-  end(message: any) {
-    console.log(`[TracingChannel] Ending span for: ${message.operation}`);
-    endAndDetach(message);
+  asyncStart(message: any) {
+    console.log(`[TracingChannel] Starting span (async) for: ${message.operation} - ${message.sql}`);
+
+    // Start a new span for this operation - do whatever is needed to generate the span
+    const span = getSpanFromMessage(message) ?? tracer.startSpan(`db.query.${message.operation}`, {
+      attributes: {
+        'db.system': 'postgresql',
+        'db.statement': message.sql,
+      }
+    });
+
+    // Create context with the new span and attach it
+    // This uses the active context to preserve parent spans
+    const spanContext = trace.setSpan(getContextFromMessage(message) ?? context.active(), span);
+    const asyncToken = context.attach?.(spanContext);
+
+    // Store both on context for later cleanup
+    const messageContext = message[OTEL_DB_TRACING_CONTEXT] ?? {};
+    messageContext.asyncToken = asyncToken;
   },
+
+  end(message: any) {
+    // Restore previous context
+    const token = getContextTokenFromMessage(message);
+    if(token) {
+      context.detach?.(token);
+    }
+  },
+
+  asyncEnd(message: any) {
+    console.log(`[TracingChannel] Ending span for: ${message.operation}`);
+    // end the span
+    getSpanFromMessage(message)?.end();
+    // Restore previous context
+    const token = getAsyncContextTokenFromMessage(message);
+    if (token) {
+      context.detach?.(token);
+    }
+  },
+
 
   error(message: any, error: Error) {
     // Record the error on the span
@@ -78,7 +137,11 @@ dbChannel.subscribe({
       span.setStatus({ code: 2, message: error.message }); // SpanStatusCode.ERROR = 2
     }
 
-    endAndDetach(message);
+    // Restore previous context
+    const token = getContextTokenFromMessage(message);
+    if (token) {
+      context.detach?.(token);
+    }
   }
 });
 
