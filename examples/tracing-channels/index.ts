@@ -1,34 +1,9 @@
-import { tracingChannel } from 'diagnostics_channel';
 import { trace } from '@opentelemetry/api';
+import { queryDatabase } from './instrumented-library.ts';
 
-const tracer = trace.getTracer('db-tracing-channel-tracer');
+// Main application - pretend we're instrumenting with OTel directly, no knowledge of tracing channels at all.
+const tracer = trace.getTracer('my-app');
 
-const dbChannel = tracingChannel('db.query');
-
-// Simulate a database query using TracingChannel
-async function queryDatabase(operation: string, sql: string): Promise<any> {
-  const message = { operation, sql };
-
-  return dbChannel.tracePromise(async () => {
-    // Simulate async database work
-    await new Promise(resolve => setTimeout(resolve, 10));
-    console.log(`Executed: ${sql}`);
-
-    // For INSERT operations, simulate an additional nested span to show context propagation
-    if (operation === 'INSERT') {
-      await tracer.startActiveSpan('db.query.INSERT.validate', async (validateSpan) => {
-        console.log('  [Nested Span] Validating INSERT operation...');
-        validateSpan.setAttribute('validation.result', 'success');
-        await new Promise(resolve => setTimeout(resolve, 5));
-        validateSpan.end();
-      });
-    }
-
-    return { rows: [] };
-  }, message);
-}
-
-// Main application
 await tracer.startActiveSpan('main', async (mainSpan) => {
   console.log('Starting application...\n');
 

@@ -1,19 +1,18 @@
 ## Diagnostics Channel instrumentation example
 
-This example demonstrates how to use OpenTelemetry to trace operations exposed via tracing channels in Node.js.
+This example demonstrates how to instrument a library that uses Node.js tracing channels with OpenTelemetry, without modifying the library itself.
 
 **Layout:**
-  - `opentelemetry.ts` contains setup for OpenTelemetry tracing, as well as an OTLP exporter.
-    - the later code pretends to be a instrumentation that subscribes to a tracing channel and generates spans based one the message.
-    - it also uses the prototype `context.attach()` and `context.detach()` APIs to manage context propagation manually
-      without having to expose `AsyncLocalStorage` as proposed in https://github.com/open-telemetry/opentelemetry-js/issues/6088
-  - `index.ts` simulates being a library that exposes operations via `diagnostics_channel`, but also uses some
-     OpenTelemetry instrumentation to demonstrate proper parenting of spans.
+  - `instrumented-library.ts` - A library that publishes operations via `diagnostics_channel.tracingChannel()` (no OpenTelemetry dependencies)
+  - `tracing-channel-instrumentation.ts` - OpenTelemetry instrumentation that subscribes to the tracing channel and creates spans
+    - Uses `context.attach()` and `context.detach()` APIs for manual context propagation
+  - `third-party-library.ts` - Simulates a library instrumented with traditional OpenTelemetry patching
+  - `index.ts` - Main application that uses the instrumented library
+  - `opentelemetry.ts` - OpenTelemetry SDK setup with OTLP and console exporters, also registers the tracing channel instrumentation
 
-To run the example, execute:
-- `npm run compile` (from top-level, important as context operations are not available otherwise)
+To run the example:
+- `npm run compile` (from top-level, important as context operations are not available otherwise, they are not available on `main` yet)
 - `npm run start` (you can set OTLP exporter env vars to point it to your backend of choice)
 
-You should see spans being generated for both the library operations and the tracing channel operations, properly parented:
-
+You should see properly parented spans for both tracing channel operations and nested traditionally-instrumented operations.
 ![trace.png](trace.png)
