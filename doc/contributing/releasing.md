@@ -11,12 +11,18 @@ We aim to eventually automate this process as much as possible.
 
 1. Go to the [Release PR Workflow](https://github.com/open-telemetry/opentelemetry-js/actions/workflows/create-or-update-release-pr.yml)
 2. Click "Run workflow"
-3. For `Release Type`, select if you want to create a release PR for a new `minor` or `patch` version.
-4. For `Release Scope`, select if you want to release
-   - `experimental` (all packages under `./experimental/packages`)
-   - `sdk` (all packages under `./packages/` and `./experimental/packages`)
-   - `all` (all packages under `./api/`, `./packages/` and `./experimental/packages`; excludes `./semantic-conventions/`)
-   - `semconv` (the single semconv package at `./semantic-conventions/`)
+3. Configure which packages to release and their version bump type:
+   - **Stable SDK packages** (`./packages/*`): Select `minor`, `patch`, or `inherit` (no release unless required)
+   - **Experimental packages** (`./experimental/packages/*`): Select `minor`, `patch`, or `inherit` (automatically inherits from Stable SDK if Stable SDK is released)
+   - **All packages** (API + Stable SDK + Experimental): Select `minor`, `patch`, or `inherit` (no release). This overrides Stable SDK and Experimental settings only if they are set to `inherit`.
+   - **Semantic Conventions** (`./semantic-conventions`): Select `minor`, `patch`, or `inherit` (no release)
+
+> [!NOTE]
+> **Release Rules:**
+> - If you release Stable SDK packages, Experimental packages will automatically inherit the same version bump type (unless you explicitly set Experimental to a different value)
+> - If you use "All packages", it will only override Stable SDK, Experimental, and API if they are set to "inherit"
+> - You cannot set "All packages" to a specific version while also setting Stable SDK or Experimental to specific versions (the workflow will fail)
+> - Semantic Conventions can be released independently or alongside other packages
 
 > [!TIP]
 > If there was a commit to `main`, after PR creation simply run the workflow again before merging it.
