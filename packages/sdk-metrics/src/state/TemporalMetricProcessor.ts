@@ -55,7 +55,7 @@ export class TemporalMetricProcessor<T extends Maybe<Accumulation>> {
   private _aggregator: Aggregator<T>;
   private _unreportedAccumulations = new Map<
     MetricCollectorHandle,
-    AttributeHashMap<T>[]
+    AttributeHashMap<T>
   >();
   private _reportHistory = new Map<
     MetricCollectorHandle,
@@ -68,7 +68,7 @@ export class TemporalMetricProcessor<T extends Maybe<Accumulation>> {
   ) {
     this._aggregator = aggregator;
     collectorHandles.forEach(handle => {
-      this._unreportedAccumulations.set(handle, []);
+      this._unreportedAccumulations.set(handle, new AttributeHashMap<T>());
     });
   }
 
@@ -79,13 +79,18 @@ export class TemporalMetricProcessor<T extends Maybe<Accumulation>> {
    * @param instrumentDescriptor The instrumentation descriptor that these metrics generated with.
    * @param currentAccumulations The current accumulation of metric data from instruments.
    * @param collectionTime The current collection timestamp.
+   * @param outputFilter When provided, only attribute sets present in this map are included in
+   *   the output. The full merged result is still stored in history for correct future cumulative
+   *   computation. Used by async instruments to satisfy the spec requirement that attribute sets
+   *   not observed in the current callback SHOULD NOT be reported.
    * @returns The {@link MetricData} points or `null`.
    */
   buildMetrics(
     collector: MetricCollectorHandle,
     instrumentDescriptor: InstrumentDescriptor,
     currentAccumulations: AttributeHashMap<T>,
-    collectionTime: HrTime
+    collectionTime: HrTime,
+    outputFilter?: AttributeHashMap<T>
   ): Maybe<MetricData> {
     this._stashAccumulations(currentAccumulations);
     const unreportedAccumulations =
@@ -141,7 +146,21 @@ export class TemporalMetricProcessor<T extends Maybe<Accumulation>> {
       aggregationTemporality,
     });
 
-    const accumulationRecords = AttributesMapToAccumulationRecords(result);
+    // When an outputFilter is provided, only emit attribute sets present in it.
+    // The full merged result is still stored in _reportHistory so that if a
+    // previously-dropped attribute set reappears, its cumulative history is
+    // preserved. See AsyncMetricStorage for usage.
+    const outputAccumulations =
+      outputFilter !== undefined &&
+      aggregationTemporality === AggregationTemporality.CUMULATIVE
+        ? TemporalMetricProcessor.filterForCurrentObservations(
+            result,
+            outputFilter
+          )
+        : result;
+
+    const accumulationRecords =
+      AttributesMapToAccumulationRecords(outputAccumulations);
 
     // do not convert to metric data if there is nothing to convert.
     if (accumulationRecords.length === 0) {
@@ -159,25 +178,20 @@ export class TemporalMetricProcessor<T extends Maybe<Accumulation>> {
   private _stashAccumulations(currentAccumulation: AttributeHashMap<T>) {
     const registeredCollectors = this._unreportedAccumulations.keys();
     for (const collector of registeredCollectors) {
-      let stash = this._unreportedAccumulations.get(collector);
-      if (stash === undefined) {
-        stash = [];
-        this._unreportedAccumulations.set(collector, stash);
-      }
-      stash.push(currentAccumulation);
+      const stash =
+        this._unreportedAccumulations.get(collector) ??
+        new AttributeHashMap<T>();
+      this._unreportedAccumulations.set(
+        collector,
+        TemporalMetricProcessor.merge(stash, currentAccumulation, this._aggregator)
+      );
     }
   }
 
   private _getMergedUnreportedAccumulations(collector: MetricCollectorHandle) {
-    let result = new AttributeHashMap<T>();
-    const unreportedList = this._unreportedAccumulations.get(collector);
-    this._unreportedAccumulations.set(collector, []);
-    if (unreportedList === undefined) {
-      return result;
-    }
-    for (const it of unreportedList) {
-      result = TemporalMetricProcessor.merge(result, it, this._aggregator);
-    }
+    const result =
+      this._unreportedAccumulations.get(collector) ?? new AttributeHashMap<T>();
+    this._unreportedAccumulations.set(collector, new AttributeHashMap<T>());
     return result;
   }
 
@@ -201,6 +215,30 @@ export class TemporalMetricProcessor<T extends Maybe<Accumulation>> {
         result.set(key, record, hash);
       }
 
+      next = iterator.next();
+    }
+    return result;
+  }
+
+  /**
+   * Returns a new map containing only entries from `mergedAccumulations` whose
+   * keys are also present in `currentObservations`. Used for async instruments
+   * with cumulative temporality to avoid emitting data for attribute sets not
+   * observed in the current callback, per the specification.
+   */
+  static filterForCurrentObservations<T extends Maybe<Accumulation>>(
+    mergedAccumulations: AttributeHashMap<T>,
+    currentObservations: AttributeHashMap<T>
+  ) {
+    const result = new AttributeHashMap<T>();
+    const iterator = currentObservations.entries();
+    let next = iterator.next();
+    while (next.done !== true) {
+      const [key, , hash] = next.value;
+      if (mergedAccumulations.has(key, hash)) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        result.set(key, mergedAccumulations.get(key, hash)!, hash);
+      }
       next = iterator.next();
     }
     return result;
