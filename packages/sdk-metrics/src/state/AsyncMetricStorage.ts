@@ -82,11 +82,16 @@ export class AsyncMetricStorage<T extends Maybe<Accumulation>>
   ): Maybe<MetricData> {
     const accumulations = this._deltaMetricStorage.collect();
 
+    // Pass accumulations as outputFilter so that only attribute sets observed
+    // in the current callback are emitted. The spec requires that previously-
+    // observed attribute sets not observed in the current callback SHOULD NOT
+    // produce aggregated metric data.
     return this._temporalMetricStorage.buildMetrics(
       collector,
       this._instrumentDescriptor,
       accumulations,
-      collectionTime
+      collectionTime,
+      accumulations
     );
   }
 }

@@ -75,17 +75,21 @@ export class TemporalMetricProcessor<T extends Maybe<Accumulation>> {
   /**
    * Builds the {@link MetricData} streams to report against a specific MetricCollector.
    * @param collector The information of the MetricCollector.
-   * @param collectors The registered collectors.
    * @param instrumentDescriptor The instrumentation descriptor that these metrics generated with.
    * @param currentAccumulations The current accumulation of metric data from instruments.
    * @param collectionTime The current collection timestamp.
+   * @param outputFilter When provided, only attribute sets present in this map are included in
+   *   the output. The full merged result is still stored in history for correct future cumulative
+   *   computation. Used by async instruments to satisfy the spec requirement that attribute sets
+   *   not observed in the current callback SHOULD NOT be reported.
    * @returns The {@link MetricData} points or `null`.
    */
   buildMetrics(
     collector: MetricCollectorHandle,
     instrumentDescriptor: InstrumentDescriptor,
     currentAccumulations: AttributeHashMap<T>,
-    collectionTime: HrTime
+    collectionTime: HrTime,
+    outputFilter?: AttributeHashMap<T>
   ): Maybe<MetricData> {
     this._stashAccumulations(currentAccumulations);
     const unreportedAccumulations =
@@ -141,7 +145,12 @@ export class TemporalMetricProcessor<T extends Maybe<Accumulation>> {
       aggregationTemporality,
     });
 
-    const accumulationRecords = AttributesMapToAccumulationRecords(result);
+    const accumulationRecords = attributesMapToAccumulationRecords(
+      result,
+      aggregationTemporality === AggregationTemporality.CUMULATIVE
+        ? outputFilter // apply if provided
+        : undefined // ignore for delta
+    );
 
     // do not convert to metric data if there is nothing to convert.
     if (accumulationRecords.length === 0) {
@@ -224,8 +233,23 @@ export class TemporalMetricProcessor<T extends Maybe<Accumulation>> {
 }
 
 // TypeScript complains about converting 3 elements tuple to AccumulationRecord<T>.
-function AttributesMapToAccumulationRecords<T>(
-  map: AttributeHashMap<T>
+function attributesMapToAccumulationRecords<T>(
+  map: AttributeHashMap<T>,
+  filter?: AttributeHashMap<T>
 ): AccumulationRecord<T>[] {
-  return Array.from(map.entries()) as unknown as AccumulationRecord<T>[];
+  if (filter == null) {
+    return Array.from(map.entries()) as unknown as AccumulationRecord<T>[];
+  }
+  const result: AccumulationRecord<T>[] = [];
+  const iterator = filter.entries();
+  let next = iterator.next();
+  while (next.done !== true) {
+    const [key, , hash] = next.value;
+    if (map.has(key, hash)) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      result.push([key, map.get(key, hash)!]);
+    }
+    next = iterator.next();
+  }
+  return result;
 }
