@@ -351,4 +351,141 @@ describe('ZoneContextManager', () => {
       );
     });
   });
+
+  describe('.attach() and .detach()', () => {
+    it('should attach a context and return the previous context', () => {
+      const ctx1 = ROOT_CONTEXT.setValue(key1, 1);
+      const ctx2 = ROOT_CONTEXT.setValue(key1, 2);
+
+      contextManager.with(ctx1, () => {
+        assert.strictEqual(contextManager.active(), ctx1);
+        const previousContext = contextManager.attach(ctx2);
+        assert.strictEqual(previousContext, ctx1);
+        assert.strictEqual(contextManager.active(), ctx2);
+      });
+    });
+
+    it('should detach and restore the previous context', () => {
+      const ctx1 = ROOT_CONTEXT.setValue(key1, 1);
+      const ctx2 = ROOT_CONTEXT.setValue(key1, 2);
+
+      contextManager.with(ctx1, () => {
+        const previousContext = contextManager.attach(ctx2);
+        assert.strictEqual(contextManager.active(), ctx2);
+        contextManager.detach(previousContext);
+        assert.strictEqual(contextManager.active(), ctx1);
+      });
+    });
+
+    it('should work with nested attach/detach operations', () => {
+      const ctx1 = ROOT_CONTEXT.setValue(key1, 1);
+      const ctx2 = ROOT_CONTEXT.setValue(key1, 2);
+      const ctx3 = ROOT_CONTEXT.setValue(key1, 3);
+
+      contextManager.with(ctx1, () => {
+        assert.strictEqual(contextManager.active(), ctx1);
+        const prev1 = contextManager.attach(ctx2);
+        assert.strictEqual(contextManager.active(), ctx2);
+        const prev2 = contextManager.attach(ctx3);
+        assert.strictEqual(contextManager.active(), ctx3);
+        contextManager.detach(prev2);
+        assert.strictEqual(contextManager.active(), ctx2);
+        contextManager.detach(prev1);
+        assert.strictEqual(contextManager.active(), ctx1);
+      });
+    });
+
+    it('should preserve context through async operations', done => {
+      const ctx1 = ROOT_CONTEXT.setValue(key1, 1);
+      const ctx2 = ROOT_CONTEXT.setValue(key1, 2);
+
+      contextManager.with(ctx1, () => {
+        const previousContext = contextManager.attach(ctx2);
+        assert.strictEqual(contextManager.active(), ctx2);
+        setTimeout(() => {
+          assert.strictEqual(contextManager.active(), ctx2);
+          contextManager.detach(previousContext);
+          assert.strictEqual(contextManager.active(), ctx1);
+          done();
+        }, 100);
+        clock.tick(100);
+      });
+    });
+
+    it('should preserve context through async/await operations', async () => {
+      const ctx1 = ROOT_CONTEXT.setValue(key1, 1);
+      const ctx2 = ROOT_CONTEXT.setValue(key1, 2);
+
+      // Avoid using with() with an async callback due to zone.js limitations with async/await
+      // Instead, test attach/detach directly with async operations
+      const prev = contextManager.attach(ctx1);
+      try {
+        assert.strictEqual(contextManager.active(), ctx1);
+        const previousContext = contextManager.attach(ctx2);
+        assert.strictEqual(contextManager.active(), ctx2);
+
+        // Use a simple async operation without setTimeout to avoid fake timer issues
+        await Promise.resolve();
+
+        assert.strictEqual(contextManager.active(), ctx2);
+        contextManager.detach(previousContext);
+        assert.strictEqual(contextManager.active(), ctx1);
+      } finally {
+        contextManager.detach(prev);
+      }
+    });
+
+    it('should return ROOT_CONTEXT when attaching while disabled', () => {
+      const ctx = ROOT_CONTEXT.setValue(key1, 1);
+      contextManager.disable();
+      const previousContext = contextManager.attach(ctx);
+      assert.strictEqual(previousContext, ROOT_CONTEXT);
+      assert.strictEqual(contextManager.active(), ROOT_CONTEXT);
+    });
+
+    it('should do nothing when detaching while disabled', () => {
+      const ctx1 = ROOT_CONTEXT.setValue(key1, 1);
+      contextManager.disable();
+      contextManager.detach(ctx1);
+      assert.strictEqual(contextManager.active(), ROOT_CONTEXT);
+    });
+
+    it('should work with attach/detach combined with with()', () => {
+      const ctx1 = ROOT_CONTEXT.setValue(key1, 1);
+      const ctx2 = ROOT_CONTEXT.setValue(key1, 2);
+      const ctx3 = ROOT_CONTEXT.setValue(key1, 3);
+
+      contextManager.with(ctx1, () => {
+        assert.strictEqual(contextManager.active(), ctx1);
+        const prev = contextManager.attach(ctx2);
+        assert.strictEqual(contextManager.active(), ctx2);
+
+        contextManager.with(ctx3, () => {
+          assert.strictEqual(contextManager.active(), ctx3);
+        });
+
+        // After with() returns, we should still be in ctx2
+        assert.strictEqual(contextManager.active(), ctx2);
+        contextManager.detach(prev);
+        assert.strictEqual(contextManager.active(), ctx1);
+      });
+    });
+
+    it('should allow attaching the same context multiple times', () => {
+      const ctx1 = ROOT_CONTEXT.setValue(key1, 1);
+      const ctx2 = ROOT_CONTEXT.setValue(key1, 2);
+
+      contextManager.with(ctx1, () => {
+        const prev1 = contextManager.attach(ctx2);
+        assert.strictEqual(contextManager.active(), ctx2);
+        const prev2 = contextManager.attach(ctx2);
+        assert.strictEqual(contextManager.active(), ctx2);
+        assert.strictEqual(prev2, ctx2);
+        contextManager.detach(prev2);
+        assert.strictEqual(contextManager.active(), ctx2);
+        contextManager.detach(prev1);
+        assert.strictEqual(contextManager.active(), ctx1);
+      });
+    });
+  });
 });

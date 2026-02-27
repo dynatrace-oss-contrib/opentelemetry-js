@@ -27,6 +27,12 @@ export class ZoneContextManager implements ContextManager {
   private _enabled = false;
 
   /**
+   * Map of zones to their attached contexts (set via attach())
+   * This allows us to override the zone's context without forking
+   */
+  private _attachedContexts = new WeakMap<Zone, Context>();
+
+  /**
    * @param context A context (span) to be executed within target function
    * @param target Function to be executed within the context
    */
@@ -147,7 +153,26 @@ export class ZoneContextManager implements ContextManager {
     if (!this._enabled || !Zone.current) {
       return ROOT_CONTEXT;
     }
-    return Zone.current.get(ZONE_CONTEXT_KEY) || ROOT_CONTEXT;
+
+    // Walk up the zone hierarchy checking both attached contexts and zone properties
+    let zone: Zone | null | undefined = Zone.current;
+    while (zone) {
+      // First check if this zone has an attached context
+      const attachedContext = this._attachedContexts.get(zone);
+      if (attachedContext != null) {
+        return attachedContext;
+      }
+
+      // Then check if this zone has a zone property
+      const zoneContext = zone.get(ZONE_CONTEXT_KEY);
+      if (zoneContext != null) {
+        return zoneContext;
+      }
+
+      zone = zone.parent;
+    }
+
+    return ROOT_CONTEXT;
   }
 
   /**
@@ -201,5 +226,34 @@ export class ZoneContextManager implements ContextManager {
       zoneName += `:${fn.name}`;
     }
     return this._createZone(zoneName, context).run(fn, thisArg, args);
+  }
+
+  /**
+   * Attaches a context to the current zone, similar to AsyncLocalStorage.enterWith().
+   * Unlike with(), this does not require a callback and makes the context active for all
+   * subsequent operations in the current zone until detach() is called to restore previous context.
+   *
+   * @param context The context to attach to the current zone
+   * @returns The previous context that can be used with detach() to restore it
+   */
+  attach(context: Context): Context {
+    const previousContext = this.active();
+    if (!this._enabled || !Zone.current) {
+      return previousContext;
+    }
+    this._attachedContexts.set(Zone.current, context);
+    return previousContext;
+  }
+
+  /**
+   * Detaches a previously attached context and restores the given context.
+   *
+   * @param context The context to restore (typically the context returned from attach())
+   */
+  detach(context: Context): void {
+    if (!this._enabled || !Zone.current) {
+      return;
+    }
+    this._attachedContexts.set(Zone.current, context);
   }
 }
