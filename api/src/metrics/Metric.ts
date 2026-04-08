@@ -10,7 +10,6 @@ import type { Context } from '../context/types';
  * Advisory options influencing aggregation configuration parameters.
  *
  * @since 1.7.0
- * @experimental
  */
 export interface MetricAdvice {
   /**
@@ -46,7 +45,6 @@ export interface MetricOptions {
 
   /**
    * The advice influencing aggregation configuration parameters.
-   * @experimental
    * @since 1.7.0
    */
   advice?: MetricAdvice;

@@ -9,6 +9,8 @@ All notable changes to this project will be documented in this file.
 
 ### :rocket: Features
 
+* feat(api): mark `MetricAdvice` as stable [#????]() @pichlermarc
+
 ### :bug: Bug Fixes
 
 ### :books: Documentation

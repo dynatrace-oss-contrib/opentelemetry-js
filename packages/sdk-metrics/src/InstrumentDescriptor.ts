@@ -24,8 +24,6 @@ export interface InstrumentDescriptor extends MetricDescriptor {
 
   /**
    * See {@link MetricAdvice}
-   *
-   * @experimental
    */
   readonly advice: MetricAdvice;
 }
