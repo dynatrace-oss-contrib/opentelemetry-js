@@ -3,7 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as grpc from '@grpc/grpc-js';
+// NOTE: do not change this to a value import. The bundler hoists module-level imports, which would load
+// '@grpc/grpc-js' before instrumentations (net, dns, http) can wrap the core modules it requires.
+import type { ServiceClientConstructor } from '@grpc/grpc-js';
 
 /**
  * Creates a unary service client constructor that, when instantiated, does not serialize/deserialize anything.
@@ -15,7 +17,12 @@ import * as grpc from '@grpc/grpc-js';
 export function createServiceClientConstructor(
   path: string,
   name: string
-): grpc.ServiceClientConstructor {
+): ServiceClientConstructor {
+  // Lazy-load so that we don't need to require/import '@grpc/grpc-js' before it can be wrapped by instrumentation.
+  const { makeGenericClientConstructor } =
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/consistent-type-imports
+    require('@grpc/grpc-js') as typeof import('@grpc/grpc-js');
+
   const serviceDefinition = {
     export: {
       path: path,
@@ -36,5 +43,5 @@ export function createServiceClientConstructor(
     },
   };
 
-  return grpc.makeGenericClientConstructor(serviceDefinition, name);
+  return makeGenericClientConstructor(serviceDefinition, name);
 }

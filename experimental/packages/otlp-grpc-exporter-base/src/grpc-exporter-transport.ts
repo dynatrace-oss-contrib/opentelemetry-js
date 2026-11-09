@@ -17,6 +17,7 @@ import type {
   IExporterTransport,
 } from '@opentelemetry/otlp-exporter-base';
 import { VERSION } from './version';
+import { createServiceClientConstructor } from './create-service-client-constructor';
 
 const DEFAULT_USER_AGENT = `OTel-OTLP-Exporter-JavaScript/${VERSION}`;
 
@@ -117,12 +118,6 @@ export class GrpcExporterTransport implements IExporterTransport {
     const buffer = Buffer.from(data);
 
     if (this._client == null) {
-      // Lazy require to ensure that grpc is not loaded before instrumentations can wrap it
-      const {
-        createServiceClientConstructor,
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-      } = require('./create-service-client-constructor');
-
       try {
         this._metadata = this._parameters.metadata();
       } catch (error) {

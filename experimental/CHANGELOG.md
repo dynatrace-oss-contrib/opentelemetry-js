@@ -13,6 +13,8 @@ For notes on migrating to 3.x see [the 3.x migration guide](../doc/3.x/migration
 
 ### :bug: Bug Fixes
 
+* fix(otlp-grpc-exporter-base): lazy-load `@grpc/grpc-js` so instrumentations can wrap it @pichlermarc
+
 ### :books: Documentation
 
 ### :house: Internal
