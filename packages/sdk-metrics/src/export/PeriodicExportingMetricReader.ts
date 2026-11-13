@@ -12,7 +12,8 @@ import {
 import { MetricReader } from './MetricReader';
 import type { PushMetricExporter } from './MetricExporter';
 import { callWithTimeout, TimeoutError } from '../utils';
-import { InstrumentType } from './MetricData';
+import type { CardinalityLimits } from './CardinalitySelector';
+import { createCardinalitySelector } from './CardinalitySelector';
 import { splitMetricData } from './MetricDataSplitter';
 import type { MetricProducer } from './MetricProducer';
 import { OTEL_COMPONENT_TYPE_VALUE_PERIODIC_METRIC_READER } from '../semconv';
@@ -42,16 +43,7 @@ export type PeriodicExportingMetricReaderOptions = {
    * Cardinality limits for the metric reader, applied per instrument. If not configured, defaults to 2000 time series per instrument. These are wrapped in a cardinalitySelector function that returns limits based on the instrument type, so they can be configured differently per type if desired.
    *
    */
-  cardinalityLimits?: {
-    counter?: number;
-    gauge?: number;
-    histogram?: number;
-    upDownCounter?: number;
-    observableCounter?: number;
-    observableGauge?: number;
-    observableUpDownCounter?: number;
-    default?: number;
-  };
+  cardinalityLimits?: CardinalityLimits;
   /**
    * The maximum number of metric data points in a batch that are provided to a
    * single export. If configured, the reader will split batches larger than
@@ -88,31 +80,7 @@ export class PeriodicExportingMetricReader extends MetricReader {
         exporter.selectAggregationTemporality?.bind(exporter),
       otelComponentType: OTEL_COMPONENT_TYPE_VALUE_PERIODIC_METRIC_READER,
       metricProducers,
-      cardinalitySelector: (instrumentType: InstrumentType) => {
-        const limits = {
-          default: 2000,
-          ...cardinalityLimits,
-        };
-
-        switch (instrumentType) {
-          case InstrumentType.COUNTER:
-            return limits.counter ?? limits.default;
-          case InstrumentType.GAUGE:
-            return limits.gauge ?? limits.default;
-          case InstrumentType.HISTOGRAM:
-            return limits.histogram ?? limits.default;
-          case InstrumentType.OBSERVABLE_COUNTER:
-            return limits.observableCounter ?? limits.default;
-          case InstrumentType.OBSERVABLE_UP_DOWN_COUNTER:
-            return limits.observableUpDownCounter ?? limits.default;
-          case InstrumentType.OBSERVABLE_GAUGE:
-            return limits.observableGauge ?? limits.default;
-          case InstrumentType.UP_DOWN_COUNTER:
-            return limits.upDownCounter ?? limits.default;
-          default:
-            return limits.default;
-        }
-      },
+      cardinalitySelector: createCardinalitySelector(cardinalityLimits),
     });
 
     if (exportIntervalMillis <= 0) {

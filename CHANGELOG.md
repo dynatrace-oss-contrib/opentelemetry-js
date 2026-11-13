@@ -15,6 +15,8 @@ For notes on migrating to 3.x see [the 3.x migration guide](doc/3.x/migration-gu
 
 ### :rocket: Features
 
+* feat(sdk-metrics): add `PullMetricReader` and the `PullMetricExporter` interface, splitting pull-based exporters into a reader and an exporter like push-based ones @pichlermarc
+
 ### :bug: Bug Fixes
 
 ### :books: Documentation

@@ -31,13 +31,21 @@ export type {
   CollectionResult,
 } from './export/MetricData';
 
-export type { PushMetricExporter } from './export/MetricExporter';
+export type {
+  PushMetricExporter,
+  PullMetricExporter,
+} from './export/MetricExporter';
 
 export { MetricReader } from './export/MetricReader';
 export type { IMetricReader, MetricReaderOptions } from './export/MetricReader';
 
 export { PeriodicExportingMetricReader } from './export/PeriodicExportingMetricReader';
 export type { PeriodicExportingMetricReaderOptions } from './export/PeriodicExportingMetricReader';
+
+export { PullMetricReader } from './export/PullMetricReader';
+export type { PullMetricReaderOptions } from './export/PullMetricReader';
+
+export type { CardinalityLimits } from './export/CardinalitySelector';
 
 export { InMemoryMetricExporter } from './export/InMemoryMetricExporter';
 
