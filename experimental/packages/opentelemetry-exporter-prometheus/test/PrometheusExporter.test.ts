@@ -78,7 +78,7 @@ describe('PrometheusExporter', () => {
 
     it('should not start the server if preventServerStart is passed as an option', () => {
       const exporter = new PrometheusExporter({ preventServerStart: true });
-      assert.ok(exporter['_server'].listening === false);
+      assert.ok(exporter['_prometheusExporter']['_server'].listening === false);
     });
   });
 
@@ -133,11 +133,11 @@ describe('PrometheusExporter', () => {
         preventServerStart: true,
       });
       assert.strictEqual(
-        exporter['_host'],
+        exporter['_prometheusExporter']['_host'],
         PrometheusExporter.DEFAULT_OPTIONS.host
       );
       assert.strictEqual(
-        exporter['_port'],
+        exporter['_prometheusExporter']['_port'],
         PrometheusExporter.DEFAULT_OPTIONS.port
       );
     });

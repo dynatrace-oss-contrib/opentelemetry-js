@@ -76,3 +76,12 @@ export interface ExporterConfig {
    */
   withoutTargetInfo?: boolean;
 }
+
+/**
+ * Configuration for {@link PrometheusMetricExporter}. Reader-level options such
+ * as `metricProducers` are configured on the `PullMetricReader` instead.
+ */
+export type PrometheusMetricExporterConfig = Omit<
+  ExporterConfig,
+  'metricProducers'
+>;

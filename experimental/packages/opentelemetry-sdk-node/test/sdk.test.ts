@@ -22,11 +22,12 @@ import {
   InstrumentType,
   MeterProvider,
   PeriodicExportingMetricReader,
+  PullMetricReader,
 } from '@opentelemetry/sdk-metrics';
 import { OTLPMetricExporter as OTLPGrpcMetricExporter } from '@opentelemetry/exporter-metrics-otlp-grpc';
 import { OTLPMetricExporter as OTLPProtoMetricExporter } from '@opentelemetry/exporter-metrics-otlp-proto';
 import { OTLPMetricExporter as OTLPHttpMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
-import { PrometheusExporter as PrometheusMetricExporter } from '@opentelemetry/exporter-prometheus';
+import { PrometheusMetricExporter } from '@opentelemetry/exporter-prometheus';
 import { AlwaysOnSampler, TracerProvider } from '@opentelemetry/sdk-trace';
 import {
   assertServiceInstanceIdIsUUID,
@@ -1701,9 +1702,11 @@ describe('NodeSDK', () => {
       const meterProvider = metrics.getMeterProvider();
       const sharedState = (meterProvider as any)['_sharedState'];
       const metricReader = sharedState.metricCollectors[0]._metricReader;
-      assert.ok(metricReader instanceof PrometheusMetricExporter);
-      assert.strictEqual(metricReader['_host'], '127.0.0.1');
-      assert.strictEqual(metricReader['_port'], 1234);
+      assert.ok(metricReader instanceof PullMetricReader);
+      const exporter = metricReader['_exporter'];
+      assert.ok(exporter instanceof PrometheusMetricExporter);
+      assert.strictEqual(exporter['_host'], '127.0.0.1');
+      assert.strictEqual(exporter['_port'], 1234);
       Sinon.assert.calledOnce(startServerStub);
       await sdk.shutdown();
     });
@@ -1719,12 +1722,13 @@ describe('NodeSDK', () => {
       const meterProvider = metrics.getMeterProvider();
       const sharedState = (meterProvider as any)['_sharedState'];
       const metricReader = sharedState.metricCollectors[0]._metricReader;
+      const exporter = metricReader['_exporter'];
       assert.strictEqual(
-        metricReader['_host'],
+        exporter['_host'],
         PrometheusMetricExporter.DEFAULT_OPTIONS.host
       );
       assert.strictEqual(
-        metricReader['_port'],
+        exporter['_port'],
         PrometheusMetricExporter.DEFAULT_OPTIONS.port
       );
       await sdk.shutdown();

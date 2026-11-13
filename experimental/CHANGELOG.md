@@ -11,6 +11,9 @@ For notes on migrating to 3.x see [the 3.x migration guide](../doc/3.x/migration
 
 ### :rocket: Features
 
+* feat(exporter-prometheus): add `PrometheusMetricExporter`, a `PullMetricExporter` to be used with `PullMetricReader` from `@opentelemetry/sdk-metrics` @pichlermarc
+  * `PrometheusExporter` is now deprecated, use `new PullMetricReader({ exporter: new PrometheusMetricExporter(options) })` instead.
+
 ### :bug: Bug Fixes
 
 ### :books: Documentation
