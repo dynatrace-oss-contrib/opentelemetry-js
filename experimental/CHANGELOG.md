@@ -13,6 +13,8 @@ For notes on migrating to 3.x see [the 3.x migration guide](../doc/3.x/migration
 
 * feat(exporter-prometheus): add `PrometheusMetricExporter`, a `PullMetricExporter` to be used with `PullMetricReader` from `@opentelemetry/sdk-metrics` @pichlermarc
   * `PrometheusExporter` is now deprecated, use `new PullMetricReader({ exporter: new PrometheusMetricExporter(options) })` instead.
+* feat(sdk-node): support `PullMetricExporter` component providers for `pull` metric readers in declarative config [#7309](https://github.com/open-telemetry/opentelemetry-js/issues/7309) @pichlermarc
+* feat(sdk-node): support `cardinality_limits` on `periodic` and `pull` metric readers in declarative config [#6425](https://github.com/open-telemetry/opentelemetry-js/issues/6425) @pichlermarc
 
 ### :bug: Bug Fixes
 

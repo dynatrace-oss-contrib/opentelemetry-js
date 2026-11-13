@@ -11,6 +11,7 @@ import type {
 } from '@opentelemetry/sdk-logs';
 import type {
   MetricProducer,
+  PullMetricExporter,
   PushMetricExporter,
 } from '@opentelemetry/sdk-metrics';
 import type {
@@ -51,7 +52,10 @@ export type IdGeneratorComponentProvider = (
   reg: ComponentProviderRegistry,
   props: ConfigProperties
 ) => IdGenerator;
-// TODO(7309): Support `PullMetricExporter` component providers.
+export type PullMetricExporterComponentProvider = (
+  reg: ComponentProviderRegistry,
+  props: ConfigProperties
+) => PullMetricExporter;
 export type PushMetricExporterComponentProvider = (
   reg: ComponentProviderRegistry,
   props: ConfigProperties
@@ -92,8 +96,7 @@ export type ComponentProviderRegistry = {
   Sampler?: Record<string, SamplerComponentProvider>;
   IdGenerator?: Record<string, IdGeneratorComponentProvider>;
 
-  // TODO(7309): Support `PullMetricExporter` component providers.
-  // PullMetricExporter?: Record<string, PullMetricExporterComponentProvider>;
+  PullMetricExporter?: Record<string, PullMetricExporterComponentProvider>;
   PushMetricExporter?: Record<string, PushMetricExporterComponentProvider>;
   MetricProducer?: Record<string, MetricProducerComponentProvider>;
 
@@ -110,7 +113,7 @@ const COMPONENT_TYPES = Object.keys({
   SpanProcessor: true,
   Sampler: true,
   IdGenerator: true,
-  // TODO(7309): PullMetricExporter: true,
+  PullMetricExporter: true,
   PushMetricExporter: true,
   MetricProducer: true,
   LogRecordExporter: true,

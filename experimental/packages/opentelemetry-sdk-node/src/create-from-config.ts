@@ -136,9 +136,11 @@ import {
 import type {
   AggregationOption,
   AggregationSelector,
+  CardinalityLimits,
   IAttributesProcessor,
   MetricProducer,
   MetricReader,
+  PullMetricExporter,
   PushMetricExporter,
   ViewOptions,
 } from '@opentelemetry/sdk-metrics';
@@ -150,8 +152,9 @@ import {
   InstrumentType,
   MeterProvider,
   PeriodicExportingMetricReader,
+  PullMetricReader,
 } from '@opentelemetry/sdk-metrics';
-import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
+import { PrometheusMetricExporter } from '@opentelemetry/exporter-prometheus';
 
 import type {
   ComponentProviderRegistry,
@@ -925,6 +928,34 @@ function createMetricProducerFromConfig(
   return getProvider(reg, 'MetricProducer', name)(reg, properties);
 }
 
+function createCardinalityLimitsFromConfig(
+  limits: PeriodicMetricReaderConfigModel['cardinality_limits']
+): CardinalityLimits | undefined {
+  if (limits == null) {
+    return undefined;
+  }
+  checkConfigUse('CardinalityLimits', limits, [
+    'default',
+    'counter',
+    'gauge',
+    'histogram',
+    'observable_counter',
+    'observable_gauge',
+    'observable_up_down_counter',
+    'up_down_counter',
+  ]);
+  return {
+    default: limits.default ?? undefined,
+    counter: limits.counter ?? undefined,
+    gauge: limits.gauge ?? undefined,
+    histogram: limits.histogram ?? undefined,
+    observableCounter: limits.observable_counter ?? undefined,
+    observableGauge: limits.observable_gauge ?? undefined,
+    observableUpDownCounter: limits.observable_up_down_counter ?? undefined,
+    upDownCounter: limits.up_down_counter ?? undefined,
+  };
+}
+
 function createPeriodicMetricReaderFromConfig(
   reg: ComponentProviderRegistry,
   periodic: PeriodicMetricReaderConfigModel
@@ -941,9 +972,9 @@ function createPeriodicMetricReaderFromConfig(
     'interval',
     'timeout',
     'max_export_batch_size/development',
+    'cardinality_limits',
   ]);
 
-  // TODO(6425): add cardinality_limits
   return new PeriodicExportingMetricReader({
     exportIntervalMillis: periodic.interval ?? 60_000,
     exportTimeoutMillis:
@@ -955,85 +986,75 @@ function createPeriodicMetricReaderFromConfig(
     metricProducers,
     maxExportBatchSize:
       periodic['max_export_batch_size/development'] ?? undefined,
+    cardinalityLimits: createCardinalityLimitsFromConfig(
+      periodic.cardinality_limits
+    ),
   });
+}
+
+function createPrometheusMetricExporterFromConfig(
+  _reg: ComponentProviderRegistry,
+  properties: ConfigProperties
+): PullMetricExporter {
+  // TODO(6653): 'translation_strategy' with #6653 or separately
+  // TODO(6605): 'resource_constant_labels' map to `withResourceConstantLabels` regex
+  checkConfigUse(
+    'ExperimentalPrometheusMetricExporterConfigModel',
+    properties,
+    ['host', 'port', 'scope_info_enabled', 'target_info_enabled/development']
+  );
+
+  const props = properties as ExperimentalPrometheusMetricExporterConfigModel;
+  return new PrometheusMetricExporter({
+    // TODO(6605): default host to `undefined` when PrometheusMetricExporter defaults to 'localhost'
+    host: props?.host ?? 'localhost',
+    // TODO(6958): default port and host to `undefined` when PrometheusMetricExporter constructor no longer reads envvars for config
+    port: props?.port ?? 9464,
+    withoutScopeInfo:
+      props?.scope_info_enabled != null ? !props.scope_info_enabled : undefined,
+    withoutTargetInfo:
+      props?.['target_info_enabled/development'] != null
+        ? !props['target_info_enabled/development']
+        : undefined,
+    // Note: The following are not configurable via declarative config.
+    // This isn't necessarily an issue.
+    // - prefix
+    // - appendTimestamp
+    // - endpoint
+    // - preventServerStart
+    // - callback (second arg)
+  });
+}
+
+export function createPullMetricExporterFromConfig(
+  reg: ComponentProviderRegistry,
+  exporter: PullMetricReaderConfigModel['exporter']
+): PullMetricExporter {
+  const [name, properties] = mustSingleEntry(exporter, 'PullMetricExporter');
+  return getProvider(reg, 'PullMetricExporter', name)(reg, properties);
 }
 
 function createPullMetricReaderFromConfig(
   reg: ComponentProviderRegistry,
   pull: PullMetricReaderConfigModel
 ): MetricReader {
-  // TODO(6425): add cardinality_limits
-  checkConfigUse('PullMetricReader', pull, ['exporter', 'producers']);
+  checkConfigUse('PullMetricReader', pull, [
+    'exporter',
+    'producers',
+    'cardinality_limits',
+  ]);
 
   const metricProducers = pull.producers?.map(producer =>
     createMetricProducerFromConfig(reg, producer)
   );
 
-  // The declarative config models a `pull` MetricReader as an object that takes
-  // an exporter, e.g.:
-  //    meter_provider:
-  //      readers:
-  //        - pull:
-  //            exporter:
-  //              prometheus/development: ... # (A)
-  //            # (B)
-  //            producers: ...
-  //            cardinality_limits: ...
-  // but the exporter (or at least the only current one, PrometheusExporter)
-  // *is* a MetricReader, and takes configuration from (A) and (B).
-  //    export class PrometheusExporter extends MetricReader { ... }
-  // TODO(7309): Support `PullMetricExporter` component providers.
-  const [name, properties] = mustSingleEntry(
-    pull.exporter,
-    'PullMetricExporter'
-  );
-
-  switch (name) {
-    case 'prometheus/development': {
-      // TODO(6653): 'translation_strategy' with #6653 or separately
-      // TODO(6605): 'resource_constant_labels' map to `withResourceConstantLabels` regex
-      checkConfigUse(
-        'ExperimentalPrometheusMetricExporterConfigModel',
-        properties,
-        [
-          'host',
-          'port',
-          'scope_info_enabled',
-          'target_info_enabled/development',
-        ]
-      );
-
-      const props =
-        properties as ExperimentalPrometheusMetricExporterConfigModel;
-      return new PrometheusExporter({
-        // TODO(6605): default host to `undefined` when PrometheusExporter defaults to 'localhost'
-        host: props?.host ?? 'localhost',
-        // TODO(6958): default port and host to `undefined` when PrometheusExporter constructor no longer reads envvars for config
-        port: props?.port ?? 9464,
-        withoutScopeInfo:
-          props?.scope_info_enabled != null
-            ? !props.scope_info_enabled
-            : undefined,
-        withoutTargetInfo:
-          props?.['target_info_enabled/development'] != null
-            ? !props['target_info_enabled/development']
-            : undefined,
-        metricProducers,
-        // Note: The following are not configurable via declarative config.
-        // This isn't necessarily an issue.
-        // - prefix
-        // - appendTimestamp
-        // - endpoint
-        // - preventServerStart
-        // - callback (second arg)
-      });
-    }
-
-    default:
-      throw new Error(
-        `unknown PullMetricReader name in configuration: "${name}"`
-      );
-  }
+  return new PullMetricReader({
+    exporter: createPullMetricExporterFromConfig(reg, pull.exporter),
+    metricProducers,
+    cardinalityLimits: createCardinalityLimitsFromConfig(
+      pull.cardinality_limits
+    ),
+  });
 }
 
 function createMetricReaderFromConfig(
@@ -1549,7 +1570,9 @@ export function getBuiltinComponentProviderRegistry(): ComponentProviderRegistry
       random: () => new RandomIdGenerator(),
     },
 
-    // TODO(7309): Support `PullMetricExporter` component providers.
+    PullMetricExporter: {
+      'prometheus/development': createPrometheusMetricExporterFromConfig,
+    },
     PushMetricExporter: {
       console: createConsoleMetricExporterFromConfig,
       otlp_http: createHttpMetricExporterFromConfig,

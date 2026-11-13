@@ -44,11 +44,12 @@ import type {
 import {
   ConsoleMetricExporter,
   PeriodicExportingMetricReader,
+  PullMetricReader,
 } from '@opentelemetry/sdk-metrics';
 import { OTLPMetricExporter as OTLPGrpcMetricExporter } from '@opentelemetry/exporter-metrics-otlp-grpc';
 import { OTLPMetricExporter as OTLPHttpMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
 import { OTLPMetricExporter as OTLPProtoMetricExporter } from '@opentelemetry/exporter-metrics-otlp-proto';
-import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
+import { PrometheusMetricExporter } from '@opentelemetry/exporter-prometheus';
 import type {
   BatchLogRecordProcessorOptions,
   LogRecordExporter,
@@ -421,9 +422,11 @@ export function getMetricReadersFromEnv(): IMetricReader[] {
       );
     } else if (exporter === 'prometheus') {
       metricReaders.push(
-        new PrometheusExporter({
-          host: getStringFromEnv('OTEL_EXPORTER_PROMETHEUS_HOST'),
-          port: getNumberFromEnv('OTEL_EXPORTER_PROMETHEUS_PORT'),
+        new PullMetricReader({
+          exporter: new PrometheusMetricExporter({
+            host: getStringFromEnv('OTEL_EXPORTER_PROMETHEUS_HOST'),
+            port: getNumberFromEnv('OTEL_EXPORTER_PROMETHEUS_PORT'),
+          }),
         })
       );
     } else {

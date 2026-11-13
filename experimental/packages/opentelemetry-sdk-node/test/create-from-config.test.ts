@@ -56,6 +56,7 @@ import {
   createLogRecordProcessorFromConfig,
   createMeterProviderFromConfig,
   createPropagatorFromConfig,
+  createPullMetricExporterFromConfig,
   createPushMetricExporterFromConfig,
   createResourceFromConfig,
   createSamplerFromConfig,
@@ -71,8 +72,9 @@ import {
   InstrumentType,
   MeterProvider,
   PeriodicExportingMetricReader,
+  PullMetricReader,
 } from '@opentelemetry/sdk-metrics';
-import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
+import { PrometheusMetricExporter } from '@opentelemetry/exporter-prometheus';
 import { mergeComponentProviderRegistries } from '../src/component-provider';
 
 const reg = mergeComponentProviderRegistries([
@@ -905,6 +907,86 @@ describe('create-from-config', () => {
       assert.ok(provider instanceof MeterProvider);
     });
 
+    describe('cardinality_limits', () => {
+      afterEach(() => {
+        sinon.restore();
+      });
+
+      const cardinality_limits = {
+        default: 100,
+        counter: 10,
+        gauge: null,
+        observable_up_down_counter: 20,
+      };
+
+      function assertLimits(reader: any) {
+        assert.strictEqual(
+          reader.selectCardinalityLimit(InstrumentType.COUNTER),
+          10
+        );
+        assert.strictEqual(
+          reader.selectCardinalityLimit(
+            InstrumentType.OBSERVABLE_UP_DOWN_COUNTER
+          ),
+          20
+        );
+        // `null` and omitted limits fall back to `default`.
+        assert.strictEqual(
+          reader.selectCardinalityLimit(InstrumentType.GAUGE),
+          100
+        );
+        assert.strictEqual(
+          reader.selectCardinalityLimit(InstrumentType.HISTOGRAM),
+          100
+        );
+      }
+
+      it('are applied to periodic readers', async () => {
+        const provider = createMeterProviderFromConfig(reg, resource, {
+          readers: [
+            { periodic: { exporter: { console: null }, cardinality_limits } },
+          ],
+        });
+        assertLimits(
+          (provider as any)._sharedState.metricCollectors[0]._metricReader
+        );
+        await provider.shutdown();
+      });
+
+      it('are applied to pull readers', async () => {
+        sinon
+          .stub(PrometheusMetricExporter.prototype, 'startServer')
+          .resolves();
+        const provider = createMeterProviderFromConfig(reg, resource, {
+          readers: [
+            {
+              pull: {
+                exporter: { 'prometheus/development': {} },
+                cardinality_limits,
+              },
+            },
+          ],
+        });
+        assertLimits(
+          (provider as any)._sharedState.metricCollectors[0]._metricReader
+        );
+        await provider.shutdown();
+      });
+
+      it('default to 2000 when omitted', async () => {
+        const provider = createMeterProviderFromConfig(reg, resource, {
+          readers: [{ periodic: { exporter: { console: null } } }],
+        });
+        const reader = (provider as any)._sharedState.metricCollectors[0]
+          ._metricReader;
+        assert.strictEqual(
+          reader.selectCardinalityLimit(InstrumentType.COUNTER),
+          2000
+        );
+        await provider.shutdown();
+      });
+    });
+
     it('more involved config with pull and periodic readers', function () {
       const meter_provider: MeterProviderConfigModel = {
         readers: [
@@ -946,7 +1028,11 @@ describe('create-from-config', () => {
       assert.ok(provider instanceof MeterProvider);
       // Cheat look at internal structure to confirm the two expected readers.
       const collectors = (provider as any)._sharedState.metricCollectors;
-      assert.ok(collectors[0]._metricReader instanceof PrometheusExporter);
+      assert.ok(collectors[0]._metricReader instanceof PullMetricReader);
+      assert.ok(
+        collectors[0]._metricReader._exporter instanceof
+          PrometheusMetricExporter
+      );
       assert.ok(
         collectors[1]._metricReader instanceof PeriodicExportingMetricReader
       );
@@ -1329,6 +1415,73 @@ describe('create-from-config', () => {
         exporter.selectAggregation(InstrumentType.HISTOGRAM),
         { type: AggregationType.EXPLICIT_BUCKET_HISTOGRAM }
       );
+    });
+  });
+
+  describe('createPullMetricExporterFromConfig', () => {
+    afterEach(() => {
+      sinon.restore();
+    });
+
+    it('prometheus/development', function () {
+      sinon.stub(PrometheusMetricExporter.prototype, 'startServer').resolves();
+      const exporter = createPullMetricExporterFromConfig(reg, {
+        'prometheus/development': { host: '127.0.0.1', port: 9481 },
+      });
+      assert.ok(exporter instanceof PrometheusMetricExporter);
+      assert.strictEqual((exporter as any)._host, '127.0.0.1');
+      assert.strictEqual((exporter as any)._port, 9481);
+    });
+
+    it('throws for unsupported exporter name', function () {
+      assert.throws(() => {
+        createPullMetricExporterFromConfig(reg, {
+          some_unknown_exporter: null,
+        } as any);
+      }, /unknown PullMetricExporter name in configuration: "some_unknown_exporter"/);
+    });
+
+    it('uses a custom PullMetricExporter component provider', async function () {
+      let seenProps: unknown;
+      const customExporter = {
+        producer: undefined as any,
+        setMetricProducer(producer: any) {
+          this.producer = producer;
+        },
+        shutdown: async () => {},
+      };
+      const customReg = mergeComponentProviderRegistries([
+        getBuiltinComponentProviderRegistry(),
+        {
+          PullMetricExporter: {
+            'my_pull/development': (_reg, props) => {
+              seenProps = props;
+              return customExporter;
+            },
+          },
+        },
+      ]);
+      const provider = createMeterProviderFromConfig(
+        customReg,
+        resourceFromAttributes({}),
+        {
+          readers: [
+            {
+              pull: {
+                exporter: { 'my_pull/development': { foo: 'bar' } } as any,
+              },
+            },
+          ],
+        }
+      );
+      assert.deepStrictEqual(seenProps, { foo: 'bar' });
+      const reader = (provider as any)._sharedState.metricCollectors[0]
+        ._metricReader;
+      assert.ok(reader instanceof PullMetricReader);
+      assert.ok(customExporter.producer, 'reader handed exporter a producer');
+      const { errors } = await customExporter.producer.collect();
+      assert.deepStrictEqual(errors, []);
+      await provider.shutdown();
     });
   });
 
