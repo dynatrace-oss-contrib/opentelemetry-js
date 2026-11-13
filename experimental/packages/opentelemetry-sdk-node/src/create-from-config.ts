@@ -352,6 +352,31 @@ function validateExportTimeoutConfig(
 
 // ---- create<SDKThing>FromConfig functions
 
+/**
+ * Get the component provider for the given type and name.
+ *
+ * Only own properties are considered, so names like "constructor" or
+ * "toString" do not resolve to `Object.prototype` members.
+ *
+ * @throws {Error} if there is no such provider.
+ */
+function getProvider<K extends keyof ComponentProviderRegistry>(
+  reg: ComponentProviderRegistry,
+  type: K,
+  name: string
+): NonNullable<ComponentProviderRegistry[K]>[string] {
+  const providers = reg[type];
+  if (
+    providers === undefined ||
+    !Object.prototype.hasOwnProperty.call(providers, name)
+  ) {
+    throw new Error(`unknown ${type} name in configuration: "${name}"`);
+  }
+  return (providers as Record<string, unknown>)[name] as NonNullable<
+    ComponentProviderRegistry[K]
+  >[string];
+}
+
 export function createPropagatorFromConfig(
   reg: ComponentProviderRegistry,
   propagatorConfig: PropagatorConfigModel
@@ -378,11 +403,12 @@ export function createPropagatorFromConfig(
     const keys = [];
     let value = undefined;
     for (const key of Object.keys(item)) {
-      value = item[key];
-      if (value === undefined) {
+      const v = item[key];
+      if (v === undefined) {
         continue;
       }
       keys.push(key);
+      value = v;
     }
     if (keys.length !== 1) {
       throw new Error(
@@ -410,13 +436,11 @@ export function createPropagatorFromConfig(
 
   const propagators: TextMapPropagator[] = [];
   for (const [name, value] of kvs) {
-    const provider = reg['TextMapPropagator']?.[name];
-    if (!provider) {
-      throw new Error(
-        `unknown TextMapPropagator name in configuration: "${name}"`
-      );
-    }
-    const propagator = provider(reg, value ?? EMPTY_CONFIG_PROPERTIES);
+    const propagator = getProvider(
+      reg,
+      'TextMapPropagator',
+      name
+    )(reg, value ?? EMPTY_CONFIG_PROPERTIES);
     propagators.push(propagator);
   }
 
@@ -492,9 +516,12 @@ export function createResourceFromConfig(
           d,
           'ExperimentalResourceDetector'
         );
-        const provider = reg['ExperimentalResourceDetector']?.[name];
-        if (provider) {
-          const detector = provider(reg, properties);
+        const providers = reg['ExperimentalResourceDetector'];
+        if (
+          providers !== undefined &&
+          Object.prototype.hasOwnProperty.call(providers, name)
+        ) {
+          const detector = providers[name](reg, properties);
           detectors.push(detector);
         } else {
           // An unknown resource detector should "warn and skip".
@@ -634,14 +661,7 @@ export function createLogRecordExporterFromConfig(
   exporter: LogRecordExporterConfigModel
 ): LogRecordExporter {
   const [name, properties] = mustSingleEntry(exporter, 'LogRecordExporter');
-  const provider = reg['LogRecordExporter']?.[name];
-  if (provider) {
-    return provider(reg, properties);
-  } else {
-    throw new Error(
-      `unknown LogRecordExporter name in configuration: "${name}"`
-    );
-  }
+  return getProvider(reg, 'LogRecordExporter', name)(reg, properties);
 }
 
 function createBatchLogRecordProcessorFromConfig(
@@ -684,14 +704,7 @@ export function createLogRecordProcessorFromConfig(
   processor: LogRecordProcessorConfigModel
 ): LogRecordProcessor {
   const [name, properties] = mustSingleEntry(processor, 'LogRecordProcessor');
-  const provider = reg['LogRecordProcessor']?.[name];
-  if (provider) {
-    return provider(reg, properties);
-  } else {
-    throw new Error(
-      `unknown LogRecordProcessor name in configuration: "${name}"`
-    );
-  }
+  return getProvider(reg, 'LogRecordProcessor', name)(reg, properties);
 }
 
 export function createLoggerProviderFromConfig(
@@ -901,14 +914,7 @@ export function createPushMetricExporterFromConfig(
   exporter: PushMetricExporterConfigModel
 ): PushMetricExporter {
   const [name, properties] = mustSingleEntry(exporter, 'PushMetricExporter');
-  const provider = reg['PushMetricExporter']?.[name];
-  if (provider) {
-    return provider(reg, properties);
-  } else {
-    throw new Error(
-      `unknown PushMetricExporter name in configuration: "${name}"`
-    );
-  }
+  return getProvider(reg, 'PushMetricExporter', name)(reg, properties);
 }
 
 function createMetricProducerFromConfig(
@@ -916,12 +922,7 @@ function createMetricProducerFromConfig(
   producer: MetricProducerConfigModel
 ): MetricProducer {
   const [name, properties] = mustSingleEntry(producer, 'MetricProducer');
-  const provider = reg['MetricProducer']?.[name];
-  if (provider) {
-    return provider(reg, properties);
-  } else {
-    throw new Error(`unknown MetricProducer name in configuration: "${name}"`);
-  }
+  return getProvider(reg, 'MetricProducer', name)(reg, properties);
 }
 
 function createPeriodicMetricReaderFromConfig(
@@ -1346,12 +1347,7 @@ function createSpanExporterFromConfig(
   exporter: SpanExporterConfigModel
 ): SpanExporter {
   const [name, properties] = mustSingleEntry(exporter, 'SpanExporter');
-  const provider = reg['SpanExporter']?.[name];
-  if (provider) {
-    return provider(reg, properties);
-  } else {
-    throw new Error(`unknown SpanExporter name in configuration: "${name}"`);
-  }
+  return getProvider(reg, 'SpanExporter', name)(reg, properties);
 }
 
 function createBatchSpanProcessorFromConfig(
@@ -1394,12 +1390,7 @@ function createSpanProcessorFromConfig(
   processor: SpanProcessorConfigModel
 ): SpanProcessor {
   const [name, properties] = mustSingleEntry(processor, 'SpanProcessor');
-  const provider = reg['SpanProcessor']?.[name];
-  if (provider) {
-    return provider(reg, properties);
-  } else {
-    throw new Error(`unknown SpanProcessor name in configuration: "${name}"`);
-  }
+  return getProvider(reg, 'SpanProcessor', name)(reg, properties);
 }
 
 function createTraceIdRatioBasedSamplerFromConfig(
@@ -1459,12 +1450,7 @@ export function createSamplerFromConfig(
     return undefined;
   }
   const [name, properties] = mustSingleEntry(samplerConfig, 'Sampler');
-  const provider = reg['Sampler']?.[name];
-  if (provider) {
-    return provider(reg, properties);
-  } else {
-    throw new Error(`unknown Sampler name in configuration: "${name}"`);
-  }
+  return getProvider(reg, 'Sampler', name)(reg, properties);
 }
 
 export function createIdGeneratorFromConfig(
@@ -1475,12 +1461,7 @@ export function createIdGeneratorFromConfig(
     return undefined;
   }
   const [name, properties] = mustSingleEntry(id_generator, 'IdGenerator');
-  const provider = reg['IdGenerator']?.[name];
-  if (provider) {
-    return provider(reg, properties);
-  } else {
-    throw new Error(`unknown IdGenerator name in configuration: "${name}"`);
-  }
+  return getProvider(reg, 'IdGenerator', name)(reg, properties);
 }
 
 export function createTracerProviderFromConfig(

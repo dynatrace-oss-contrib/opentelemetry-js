@@ -24,7 +24,6 @@ import type {
  * Schemaless configuration properties passed to a component provider.
  */
 export type ConfigProperties = Record<string, unknown>;
-// ^XXX this type will come from api-config, or could just be copied here if we want to avoid a dep on it
 
 // These `*ComponentProvider` aliases are defined to make
 // `type ComponentProviderRegistry` more readable;
@@ -102,6 +101,25 @@ export type ComponentProviderRegistry = {
   LogRecordProcessor?: Record<string, LogRecordProcessorComponentProvider>;
 };
 
+// Every key of `ComponentProviderRegistry` must be listed here (checked by
+// `satisfies`), otherwise `mergeComponentProviderRegistries` would drop it.
+const COMPONENT_TYPES = Object.keys({
+  ExperimentalResourceDetector: true,
+  TextMapPropagator: true,
+  SpanExporter: true,
+  SpanProcessor: true,
+  Sampler: true,
+  IdGenerator: true,
+  // TODO(7309): PullMetricExporter: true,
+  PushMetricExporter: true,
+  MetricProducer: true,
+  LogRecordExporter: true,
+  LogRecordProcessor: true,
+} satisfies Record<
+  keyof ComponentProviderRegistry,
+  true
+>) as (keyof ComponentProviderRegistry)[];
+
 /**
  * Merge multiple `ComponentProviderRegistry`'s into one.
  *
@@ -113,26 +131,16 @@ export function mergeComponentProviderRegistries(
 ): ComponentProviderRegistry {
   const mergedReg: ComponentProviderRegistry = {};
   for (const reg of regs) {
-    const componentTypes: (keyof ComponentProviderRegistry)[] = [
-      'ExperimentalResourceDetector',
-      'TextMapPropagator',
-      'SpanExporter',
-      'SpanProcessor',
-      'Sampler',
-      'IdGenerator',
-      // TODO(7309): 'PullMetricExporter',
-      'PushMetricExporter',
-      'MetricProducer',
-      'LogRecordExporter',
-      'LogRecordProcessor',
-    ];
-    for (const componentType of componentTypes) {
+    for (const componentType of COMPONENT_TYPES) {
       const providerFromName = reg[componentType];
       if (providerFromName !== undefined) {
         for (const name of Object.keys(providerFromName)) {
-          if (mergedReg[componentType]?.[name]) {
+          if (
+            mergedReg[componentType] !== undefined &&
+            Object.prototype.hasOwnProperty.call(mergedReg[componentType], name)
+          ) {
             throw new Error(
-              `a ComponentProvider of type "${componentType}" and name="${name}" is already registered: ${mergedReg[componentType]?.[name]}`
+              `a ComponentProvider of type "${componentType}" and name="${name}" is already registered`
             );
           } else {
             mergedReg[componentType] ??= {};
