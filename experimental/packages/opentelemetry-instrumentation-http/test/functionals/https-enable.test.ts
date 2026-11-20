@@ -26,8 +26,6 @@ import {
 } from '@opentelemetry/semantic-conventions';
 import * as assert from 'assert';
 import * as fs from 'fs';
-import * as nock from 'nock';
-import * as path from 'path';
 import { HttpInstrumentation } from '../../src/http';
 import { assertSpan } from '../utils/assertSpan';
 import { DummyPropagation } from '../utils/DummyPropagation';
@@ -57,18 +55,13 @@ const provider = new TracerProvider({
 instrumentation.setTracerProvider(provider);
 const tracer = provider.getTracer('test-https');
 
-function doNock(
-  hostname: string,
-  path: string,
-  httpCode: number,
-  respBody: string,
-  times?: number
-) {
-  const i = times || 1;
-  nock(`${protocol}://${hostname}`)
-    .get(path)
-    .times(i)
-    .reply(httpCode, respBody);
+// Responses that the local test server returns for specific paths. The
+// server span of such requests is ignored so that only the client span of the
+// request under test is recorded.
+const mockRoutes = new Map<string, { status: number; body: string }>();
+
+function doMock(path: string, httpCode: number, respBody: string) {
+  mockRoutes.set(path, { status: httpCode, body: respBody });
 }
 
 export const customAttributeFunction = (span: ISpan): void => {
@@ -79,6 +72,7 @@ describe('HttpsInstrumentation', () => {
   let contextManager: ContextManager;
 
   beforeEach(() => {
+    mockRoutes.clear();
     contextManager = new AsyncLocalStorageContextManager().enable();
     propagation.setGlobalPropagator(new DummyPropagation());
     context.setGlobalContextManager(contextManager);
@@ -171,7 +165,9 @@ describe('HttpsInstrumentation', () => {
         instrumentation.setConfig({
           ignoreIncomingRequestHook: request => {
             return (
-              request.headers['user-agent']?.match('ignored-string') != null
+              request.headers['user-agent']?.match('ignored-string') != null ||
+              mockRoutes.has(request.url ?? '') ||
+              request.url === '/no-response'
             );
           },
           ignoreOutgoingRequestHook: request => {
@@ -190,6 +186,21 @@ describe('HttpsInstrumentation', () => {
             cert: fs.readFileSync('test/fixtures/server-cert.pem'),
           },
           (request, response) => {
+            const mock = mockRoutes.get(request.url ?? '');
+            if (mock) {
+              response.statusCode = mock.status;
+              response.end(mock.body);
+              return;
+            }
+            if (request.url === '/no-response') {
+              // never respond.
+              return;
+            }
+            if (request.url?.includes('/hang')) {
+              // write response headers and hang the request.
+              response.write('');
+              return;
+            }
             if (request.url?.includes('/ignored')) {
               tracer.startSpan('some-span').end();
             }
@@ -263,18 +274,13 @@ describe('HttpsInstrumentation', () => {
         it(`should test span for GET requests with http error ${httpErrorCodes[i]}`, async () => {
           const testPath = '/outgoing/rootSpan/1';
 
-          doNock(
-            hostname,
-            testPath,
-            httpErrorCodes[i],
-            httpErrorCodes[i].toString()
-          );
+          doMock(testPath, httpErrorCodes[i], httpErrorCodes[i].toString());
 
           const isReset = memoryExporter.getFinishedSpans().length === 0;
           assert.ok(isReset);
 
           const result = await httpsRequest.get(
-            `${protocol}://${hostname}${testPath}`
+            `${protocol}://${hostname}:${serverPort}${testPath}`
           );
           const spans = memoryExporter.getFinishedSpans();
           const reqSpan = spans[0];
@@ -298,12 +304,12 @@ describe('HttpsInstrumentation', () => {
 
       it('should create a child span for GET requests', async () => {
         const testPath = '/outgoing/rootSpan/childs/1';
-        doNock(hostname, testPath, 200, 'Ok');
+        doMock(testPath, 200, 'Ok');
         const name = 'TestRootSpan';
         const span = tracer.startSpan(name);
         return context.with(trace.setSpan(context.active(), span), async () => {
           const result = await httpsRequest.get(
-            `${protocol}://${hostname}${testPath}`
+            `${protocol}://${hostname}:${serverPort}${testPath}`
           );
           span.end();
           const spans = memoryExporter.getFinishedSpans();
@@ -336,19 +342,14 @@ describe('HttpsInstrumentation', () => {
       for (let i = 0; i < httpErrorCodes.length; i++) {
         it(`should test child spans for GET requests with http error ${httpErrorCodes[i]}`, async () => {
           const testPath = '/outgoing/rootSpan/childs/1';
-          doNock(
-            hostname,
-            testPath,
-            httpErrorCodes[i],
-            httpErrorCodes[i].toString()
-          );
+          doMock(testPath, httpErrorCodes[i], httpErrorCodes[i].toString());
           const name = 'TestRootSpan';
           const span = tracer.startSpan(name);
           return context.with(
             trace.setSpan(context.active(), span),
             async () => {
               const result = await httpsRequest.get(
-                `${protocol}://${hostname}${testPath}`
+                `${protocol}://${hostname}:${serverPort}${testPath}`
               );
               span.end();
               const spans = memoryExporter.getFinishedSpans();
@@ -383,12 +384,14 @@ describe('HttpsInstrumentation', () => {
       it('should create multiple child spans for GET requests', async () => {
         const testPath = '/outgoing/rootSpan/childs';
         const num = 5;
-        doNock(hostname, testPath, 200, 'Ok', num);
+        doMock(testPath, 200, 'Ok');
         const name = 'TestRootSpan';
         const span = tracer.startSpan(name);
         await context.with(trace.setSpan(context.active(), span), async () => {
           for (let i = 0; i < num; i++) {
-            await httpsRequest.get(`${protocol}://${hostname}${testPath}`);
+            await httpsRequest.get(
+              `${protocol}://${hostname}:${serverPort}${testPath}`
+            );
             const spans = memoryExporter.getFinishedSpans();
             assert.strictEqual(spans[i].name, 'GET');
             assert.strictEqual(
@@ -424,9 +427,8 @@ describe('HttpsInstrumentation', () => {
           try {
             await httpsRequest.get(arg);
           } catch (error) {
-            // request has been made
-            // nock throw
-            assert.ok(error.message.startsWith('Nock: No match for request'));
+            // the request has been made, but nothing listens on the default port.
+            assert.strictEqual(error.code, 'ECONNREFUSED');
           }
           const spans = memoryExporter.getFinishedSpans();
           assert.strictEqual(spans.length, 1);
@@ -440,12 +442,11 @@ describe('HttpsInstrumentation', () => {
           try {
             await httpsRequest.get(arg as any);
           } catch (error) {
-            // request has been made
-            // nock throw
+            // The argument is passed on to the original method, which either
+            // rejects the invalid URL or fails to connect to the default port.
             assert.ok(
-              error.stack.indexOf(
-                path.normalize('/node_modules/nock/lib/intercept.js')
-              ) > 0
+              ['ERR_INVALID_URL', 'ECONNREFUSED'].includes(error.code),
+              `unexpected error: ${error.code} ${error.message}`
             );
           }
           const spans = memoryExporter.getFinishedSpans();
@@ -465,11 +466,11 @@ describe('HttpsInstrumentation', () => {
 
       it('should have 1 ended span when response.end throw an exception', async () => {
         const testPath = '/outgoing/rootSpan/childs/1';
-        doNock(hostname, testPath, 400, 'Not Ok');
+        doMock(testPath, 400, 'Not Ok');
 
         const promiseRequest = new Promise((resolve, reject) => {
           const req = https.request(
-            `${protocol}://${hostname}${testPath}`,
+            `${protocol}://${hostname}:${serverPort}${testPath}`,
             (resp: http.IncomingMessage) => {
               let data = '';
               resp.on('data', chunk => {
@@ -493,8 +494,6 @@ describe('HttpsInstrumentation', () => {
       });
 
       it('should have 1 ended span when request throw on bad "options" object', () => {
-        nock.cleanAll();
-        nock.enableNetConnect();
         try {
           https.request({ protocol: 'telnet' });
           assert.fail();
@@ -513,7 +512,7 @@ describe('HttpsInstrumentation', () => {
         options.path = pathname;
         options.method = 'GET';
 
-        doNock(hostname, testPath, 200, 'Ok');
+        doMock(testPath, 200, 'Ok');
 
         const promiseRequest = new Promise((resolve, _reject) => {
           const req = https.request(options, (resp: http.IncomingMessage) => {
@@ -532,11 +531,11 @@ describe('HttpsInstrumentation', () => {
 
       it('should have 1 ended span when response.end throw an exception', async () => {
         const testPath = '/outgoing/rootSpan/childs/1';
-        doNock(hostname, testPath, 400, 'Not Ok');
+        doMock(testPath, 400, 'Not Ok');
 
         const promiseRequest = new Promise((resolve, reject) => {
           const req = https.request(
-            `${protocol}://${hostname}${testPath}`,
+            `${protocol}://${hostname}:${serverPort}${testPath}`,
             (resp: http.IncomingMessage) => {
               let data = '';
               resp.on('data', chunk => {
@@ -560,14 +559,9 @@ describe('HttpsInstrumentation', () => {
       });
 
       it('should have 1 ended span when request is aborted', async () => {
-        nock(`${protocol}://my.server.com`)
-          .get('/')
-          .delayConnection(50)
-          .reply(200, '<html></html>');
-
         const promiseRequest = new Promise((resolve, reject) => {
           const req = https.request(
-            `${protocol}://my.server.com`,
+            `${protocol}://${hostname}:${serverPort}/no-response`,
             (resp: http.IncomingMessage) => {
               let data = '';
               resp.on('data', chunk => {
@@ -578,9 +572,7 @@ describe('HttpsInstrumentation', () => {
               });
             }
           );
-          req.setTimeout(10, () => {
-            req.destroy();
-          });
+          setTimeout(() => req.destroy(), 10);
           // Instrumentation should not swallow error event.
           assert.strictEqual(req.listeners('error').length, 0);
           req.on('error', err => {
@@ -598,25 +590,14 @@ describe('HttpsInstrumentation', () => {
       });
 
       it('should have 1 ended span when request is aborted after receiving response', async () => {
-        nock(`${protocol}://my.server.com`)
-          .get('/')
-          .delay({
-            body: 50,
-          })
-          .replyWithFile(200, `${process.cwd()}/package.json`);
-
         const promiseRequest = new Promise((resolve, reject) => {
           const req = https.request(
-            `${protocol}://my.server.com`,
+            `${protocol}://${hostname}:${serverPort}/hang`,
             (resp: http.IncomingMessage) => {
-              let data = '';
-              resp.on('data', chunk => {
-                req.destroy(Error('request destroyed'));
-                data += chunk;
-              });
-              resp.on('end', () => {
-                resolve(data);
-              });
+              resp.on('data', () => {});
+              resp.on('end', () => resolve(undefined));
+              resp.on('error', () => {});
+              req.destroy(Error('request destroyed'));
             }
           );
           // Instrumentation should not swallow error event.
@@ -629,7 +610,9 @@ describe('HttpsInstrumentation', () => {
         });
 
         await assert.rejects(promiseRequest, /Error: request destroyed/);
-        const spans = memoryExporter.getFinishedSpans();
+        const spans = memoryExporter
+          .getFinishedSpans()
+          .filter(it => it.kind === SpanKind.CLIENT);
         const [span] = spans;
         assert.strictEqual(spans.length, 1);
         assert.strictEqual(span.status.code, SpanStatusCode.ERROR);
@@ -637,9 +620,10 @@ describe('HttpsInstrumentation', () => {
       });
 
       it("should have 1 ended span when response is listened by using req.on('response')", done => {
-        const host = `${protocol}://${hostname}`;
-        nock(host).get('/').reply(404);
-        const req = https.request(`${host}/`);
+        doMock('/not-found', 404, '');
+        const req = https.request(
+          `${protocol}://${hostname}:${serverPort}/not-found`
+        );
         req.on('response', response => {
           response.on('data', () => {});
           response.on('end', () => {

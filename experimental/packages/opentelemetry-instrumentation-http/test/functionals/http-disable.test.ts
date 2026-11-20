@@ -5,7 +5,6 @@
 import * as assert from 'assert';
 import { HttpInstrumentation } from '../../src/http';
 import type { AddressInfo } from 'net';
-import * as nock from 'nock';
 import * as sinon from 'sinon';
 import { httpRequest } from '../utils/httpRequest';
 import { isWrapped } from '@opentelemetry/instrumentation';
@@ -35,8 +34,6 @@ describe('HttpInstrumentation', () => {
           return { startSpan: startSpanStub } as any;
         },
       };
-      nock.cleanAll();
-      nock.enableNetConnect();
       instrumentation.enable();
       assert.strictEqual(isWrapped(http.Server.prototype.emit), true);
       instrumentation.setTracerProvider(provider);

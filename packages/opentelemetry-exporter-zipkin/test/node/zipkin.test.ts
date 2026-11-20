@@ -4,7 +4,11 @@
  */
 
 import * as assert from 'assert';
-import * as nock from 'nock';
+import * as http from 'http';
+import * as https from 'https';
+import type { AddressInfo } from 'net';
+import { EventEmitter } from 'events';
+import * as sinon from 'sinon';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace';
 import type { ExportResult } from '@opentelemetry/core';
 import { hrTimeToMicroseconds, ExportResultCode } from '@opentelemetry/core';
@@ -52,7 +56,58 @@ function getReadableSpan() {
   return readableSpan;
 }
 
+interface ReceivedRequest {
+  method: string | undefined;
+  url: string | undefined;
+  headers: http.IncomingHttpHeaders;
+  body: any;
+}
+
+function exportSpans(
+  exporter: ZipkinExporter,
+  spans: ReadableSpan[]
+): Promise<ExportResult> {
+  return new Promise(resolve => exporter.export(spans, resolve));
+}
+
 describe('Zipkin Exporter - node', () => {
+  let server: http.Server;
+  let url: string;
+  let received: ReceivedRequest[];
+  let respond: (req: http.IncomingMessage, res: http.ServerResponse) => void;
+
+  beforeEach(async () => {
+    received = [];
+    respond = (_req, res) => {
+      res.writeHead(202).end();
+    };
+    server = http.createServer((req, res) => {
+      let raw = '';
+      req.on('data', chunk => {
+        raw += chunk;
+      });
+      req.on('end', () => {
+        received.push({
+          method: req.method,
+          url: req.url,
+          headers: req.headers,
+          body: JSON.parse(raw),
+        });
+        respond(req, res);
+      });
+    });
+    await new Promise<void>(resolve => server.listen(0, 'localhost', resolve));
+    url = `http://localhost:${(server.address() as AddressInfo).port}/api/v2/spans`;
+  });
+
+  afterEach(async () => {
+    sinon.restore();
+    await new Promise(resolve => {
+      server.close(resolve);
+      server.closeAllConnections();
+    });
+  });
+
   describe('constructor', () => {
     it('should construct an exporter', () => {
       const exporter = new ZipkinExporter({ serviceName: 'my-service' });
@@ -93,14 +148,6 @@ describe('Zipkin Exporter - node', () => {
   });
 
   describe('export', () => {
-    before(() => {
-      nock.disableNetConnect();
-    });
-
-    after(() => {
-      nock.enableNetConnect();
-    });
-
     it('should skip send with empty array', () => {
       const exporter = new ZipkinExporter({
         serviceName: 'my-service',
@@ -111,15 +158,7 @@ describe('Zipkin Exporter - node', () => {
       });
     });
 
-    it('should send spans to Zipkin backend and return with Success', () => {
-      let requestBody: [zipkinTypes.Span];
-      const scope = nock('http://localhost:9411')
-        .post('/api/v2/spans', (body: [zipkinTypes.Span]) => {
-          requestBody = body;
-          return true;
-        })
-        .reply(202);
-
+    it('should send spans to Zipkin backend and return with Success', async () => {
       const parentSpanId = '5c1c63257de34c67';
       const startTime = 1566156729709;
       const duration = 2000;
@@ -193,12 +232,20 @@ describe('Zipkin Exporter - node', () => {
 
       const exporter = new ZipkinExporter({
         serviceName: 'my-service',
+        url,
       });
 
-      exporter.export([span1, span2], (result: ExportResult) => {
-        scope.done();
+      {
+        const result = await exportSpans(exporter, [span1, span2]);
         assert.strictEqual(result.code, ExportResultCode.SUCCESS);
-        assert.deepStrictEqual(requestBody, [
+        assert.strictEqual(received.length, 1);
+        assert.strictEqual(received[0].method, 'POST');
+        assert.strictEqual(received[0].url, '/api/v2/spans');
+        assert.strictEqual(
+          received[0].headers['content-type'],
+          'application/json'
+        );
+        assert.deepStrictEqual(received[0].body, [
           // Span 1
           {
             annotations: [
@@ -238,68 +285,84 @@ describe('Zipkin Exporter - node', () => {
             traceId: span2.spanContext().traceId,
           },
         ]);
-      });
+      }
     });
 
-    it('should support https protocol', () => {
-      const scope = nock('https://localhost:9411')
-        .post('/api/v2/spans')
-        .reply(200);
+    it('should support https protocol', async () => {
+      // No TLS certificate is available here, so fake the https request.
+      const requestStub = sinon
+        .stub(https, 'request')
+        .callsFake((_url: any, _opts: any, cb: any) => {
+          const req = Object.assign(new EventEmitter(), {
+            write: () => true,
+            end: () => {
+              const res = Object.assign(new EventEmitter(), {
+                statusCode: 200,
+              });
+              cb(res);
+              res.emit('end');
+            },
+          });
+          return req as any;
+        });
 
       const exporter = new ZipkinExporter({
         serviceName: 'my-service',
         url: 'https://localhost:9411/api/v2/spans',
       });
 
-      exporter.export([getReadableSpan()], (result: ExportResult) => {
-        scope.done();
-        assert.strictEqual(result.code, ExportResultCode.SUCCESS);
-      });
+      const result = await exportSpans(exporter, [getReadableSpan()]);
+      assert.strictEqual(result.code, ExportResultCode.SUCCESS);
+      sinon.assert.calledOnce(requestStub);
+      assert.strictEqual(
+        String(requestStub.firstCall.args[0]),
+        'https://localhost:9411/api/v2/spans'
+      );
     });
 
-    it('should return Failed result with 4xx', () => {
-      const scope = nock('http://localhost:9411')
-        .post('/api/v2/spans')
-        .reply(400);
+    it('should return Failed result with 4xx', async () => {
+      respond = (_req, res) => {
+        res.writeHead(400).end();
+      };
 
       const exporter = new ZipkinExporter({
         serviceName: 'my-service',
+        url,
       });
 
-      exporter.export([getReadableSpan()], (result: ExportResult) => {
-        scope.done();
-        assert.strictEqual(result.code, ExportResultCode.FAILED);
-      });
+      const result = await exportSpans(exporter, [getReadableSpan()]);
+      assert.strictEqual(result.code, ExportResultCode.FAILED);
+      assert.strictEqual(received.length, 1);
     });
 
-    it('should return failed result with 5xx', () => {
-      const scope = nock('http://localhost:9411')
-        .post('/api/v2/spans')
-        .reply(500);
+    it('should return failed result with 5xx', async () => {
+      respond = (_req, res) => {
+        res.writeHead(500).end();
+      };
 
       const exporter = new ZipkinExporter({
         serviceName: 'my-service',
+        url,
       });
 
-      exporter.export([getReadableSpan()], (result: ExportResult) => {
-        scope.done();
-        assert.strictEqual(result.code, ExportResultCode.FAILED);
-      });
+      const result = await exportSpans(exporter, [getReadableSpan()]);
+      assert.strictEqual(result.code, ExportResultCode.FAILED);
+      assert.strictEqual(received.length, 1);
     });
 
-    it('should return failed result with socket error', () => {
-      const scope = nock('http://localhost:9411')
-        .post('/api/v2/spans')
-        .replyWithError(new Error('My Socket Error'));
+    it('should return failed result with socket error', async () => {
+      respond = req => {
+        req.socket.destroy();
+      };
 
       const exporter = new ZipkinExporter({
         serviceName: 'my-service',
+        url,
       });
 
-      exporter.export([getReadableSpan()], (result: ExportResult) => {
-        scope.done();
-        assert.strictEqual(result.code, ExportResultCode.FAILED);
-      });
+      const result = await exportSpans(exporter, [getReadableSpan()]);
+      assert.strictEqual(result.code, ExportResultCode.FAILED);
+      assert.strictEqual(received.length, 1);
     });
 
     it('should return failed result after shutdown', done => {
@@ -315,35 +378,26 @@ describe('Zipkin Exporter - node', () => {
       });
     });
 
-    it('should call globalErrorHandler on error', () => {
-      const expectedError = new Error('Whoops');
-      const scope = nock('http://localhost:9411')
-        .post('/api/v2/spans')
-        .replyWithError(expectedError);
+    it('should return the error in the result on error', async () => {
+      respond = req => {
+        req.socket.destroy();
+      };
 
       const exporter = new ZipkinExporter({
         serviceName: 'my-service',
+        url,
       });
 
-      exporter.export([getReadableSpan()], (result: ExportResult) => {
-        assert.deepStrictEqual(result.code, ExportResultCode.FAILED);
-        assert.deepStrictEqual(result.error, expectedError);
-        scope.done();
-      });
+      const result = await exportSpans(exporter, [getReadableSpan()]);
+      assert.deepStrictEqual(result.code, ExportResultCode.FAILED);
+      assert.ok(result.error instanceof Error);
+      assert.match(result.error.message, /socket hang up/);
     });
   });
 
-  it('should set serviceName per-span if resource has one', () => {
+  it('should set serviceName per-span if resource has one', async () => {
     const resource_service_name = 'resource_service_name';
     const resource_service_name_prime = 'resource_service_name_prime';
-
-    let requestBody: zipkinTypes.Span[];
-    const scope = nock('http://localhost:9411')
-      .post('/api/v2/spans', body => {
-        requestBody = body;
-        return true;
-      })
-      .replyWithError(new Error('My Socket Error'));
 
     const parentSpanId = '5c1c63257de34c67';
     const startTime = 1566156729709;
@@ -416,33 +470,24 @@ describe('Zipkin Exporter - node', () => {
       droppedLinksCount: 0,
     };
 
-    const exporter = new ZipkinExporter({});
+    const exporter = new ZipkinExporter({ url });
 
-    exporter.export([span1, span2], (result: ExportResult) => {
-      assert.ok(requestBody);
-      scope.done();
-      assert.equal(
-        requestBody[0].localEndpoint.serviceName,
-        resource_service_name
-      );
-      assert.equal(
-        requestBody[1].localEndpoint.serviceName,
-        resource_service_name_prime
-      );
-    });
+    await exportSpans(exporter, [span1, span2]);
+    assert.strictEqual(received.length, 1);
+    const requestBody: zipkinTypes.Span[] = received[0].body;
+    assert.equal(
+      requestBody[0].localEndpoint.serviceName,
+      resource_service_name
+    );
+    assert.equal(
+      requestBody[1].localEndpoint.serviceName,
+      resource_service_name_prime
+    );
   });
 
-  it('should set serviceName per-span if span has attribute', () => {
+  it('should set serviceName per-span if span has attribute', async () => {
     const span_service_name = 'span_service_name';
     const span_service_name_prime = 'span_service_name_prime';
-
-    let requestBody: any;
-    const scope = nock('http://localhost:9411')
-      .post('/api/v2/spans', body => {
-        requestBody = body;
-        return true;
-      })
-      .replyWithError(new Error('My Socket Error'));
 
     const parentSpanId = '5c1c63257de34c67';
     const startTime = 1566156729709;
@@ -514,17 +559,16 @@ describe('Zipkin Exporter - node', () => {
       droppedLinksCount: 0,
     };
 
-    const exporter = new ZipkinExporter({});
+    const exporter = new ZipkinExporter({ url });
 
-    exporter.export([span1, span2], (result: ExportResult) => {
-      assert.ok(requestBody);
-      scope.done();
-      assert.equal(requestBody[0].localEndpoint.serviceName, span_service_name);
-      assert.equal(
-        requestBody[1].localEndpoint.serviceName,
-        span_service_name_prime
-      );
-    });
+    await exportSpans(exporter, [span1, span2]);
+    assert.strictEqual(received.length, 1);
+    const requestBody: zipkinTypes.Span[] = received[0].body;
+    assert.equal(requestBody[0].localEndpoint.serviceName, span_service_name);
+    assert.equal(
+      requestBody[1].localEndpoint.serviceName,
+      span_service_name_prime
+    );
   });
 
   describe('force flush', () => {
@@ -535,23 +579,20 @@ describe('Zipkin Exporter - node', () => {
   });
 
   describe('when env.OTEL_EXPORTER_ZIPKIN_ENDPOINT is set', () => {
-    before(() => {
-      process.env.OTEL_EXPORTER_ZIPKIN_ENDPOINT = 'http://localhost:9412';
+    beforeEach(() => {
+      process.env.OTEL_EXPORTER_ZIPKIN_ENDPOINT = url;
     });
-    after(() => {
+    afterEach(() => {
       delete process.env.OTEL_EXPORTER_ZIPKIN_ENDPOINT;
     });
-    it('should use url from env', () => {
-      const scope = nock('http://localhost:9412').post('/').reply(200);
-
+    it('should use url from env', async () => {
       const exporter = new ZipkinExporter({
         serviceName: 'my-service',
       });
 
-      exporter.export([getReadableSpan()], (result: ExportResult) => {
-        scope.done();
-        assert.strictEqual(result.code, ExportResultCode.SUCCESS);
-      });
+      const result = await exportSpans(exporter, [getReadableSpan()]);
+      assert.strictEqual(result.code, ExportResultCode.SUCCESS);
+      assert.strictEqual(received.length, 1);
     });
   });
 });

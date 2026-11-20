@@ -12,7 +12,6 @@ import {
   TracerProvider,
 } from '@opentelemetry/sdk-trace';
 import * as assert from 'assert';
-import * as path from 'path';
 import { HttpInstrumentation } from '../../src/http';
 import { assertSpan } from '../utils/assertSpan';
 import { DummyPropagation } from '../utils/DummyPropagation';
@@ -22,9 +21,14 @@ instrumentation.enable();
 instrumentation.disable();
 
 import type * as http from 'http';
+import * as https from 'https';
+import * as fs from 'fs';
+import type { AddressInfo } from 'net';
 import * as superagent from 'superagent';
-import * as nock from 'nock';
 import * as axios from 'axios';
+
+// The test server uses a self-signed certificate.
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
 const memoryExporter = new InMemorySpanExporter();
 const customAttributeFunction = (span: Span): void => {
@@ -51,18 +55,37 @@ describe('Packages', () => {
       memoryExporter.reset();
     });
 
-    before(() => {
+    let server: http.Server;
+    let serverUrl: string;
+
+    before(async () => {
       propagation.setGlobalPropagator(new DummyPropagation());
       instrumentation.setConfig({
         applyCustomAttributesOnSpan: customAttributeFunction,
+        // Only the client spans are of interest here.
+        ignoreIncomingRequestHook: () => true,
       });
       instrumentation.enable();
+
+      server = https.createServer(
+        {
+          key: fs.readFileSync('test/fixtures/server-key.pem'),
+          cert: fs.readFileSync('test/fixtures/server-cert.pem'),
+        },
+        (_request, response) => {
+          response.setHeader('Content-Type', 'text/html');
+          response.end('<html><body>Test Server Response</body></html>');
+        }
+      );
+      await new Promise<void>(resolve =>
+        server.listen(0, 'localhost', resolve)
+      );
+      serverUrl = `https://localhost:${(server.address() as AddressInfo).port}`;
     });
 
     after(() => {
       // back to normal
-      nock.cleanAll();
-      nock.enableNetConnect();
+      server.close();
       propagation.disable();
     });
 
@@ -72,10 +95,8 @@ describe('Packages', () => {
       { name: 'superagent', httpPackage: superagent },
     ].forEach(({ name, httpPackage }) => {
       it(`should create a span for GET requests and add propagation headers by using ${name} package`, async () => {
-        nock.load(path.join(__dirname, '../', '/fixtures/google-https.json'));
-
         const urlparsed = new URL(
-          'https://www.google.com/search?q=axios&oq=axios&aqs=chrome.0.69i59l2j0l3j69i60.811j0j7&sourceid=chrome&ie=UTF-8'
+          `${serverUrl}/search?q=axios&oq=axios&aqs=chrome.0.69i59l2j0l3j69i60.811j0j7&sourceid=chrome&ie=UTF-8`
         );
         const result = await httpPackage.get(urlparsed.href);
         if (!resHeaders) {
